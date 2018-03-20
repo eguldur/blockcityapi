@@ -1,10 +1,16 @@
 var mongoose = require("mongoose");
 
 var userSchema = new mongoose.Schema({
-  userId : String,
+  googleUserId : String,
+  googleUserName : String, 
+  googleEmail : String,
   userName : String,
-  email : String,
-  score : String
+  changeUserName : Boolean,
+  coin : String,
+  numberOfWins : String,
+  numberOfDefeats : String
+  //score array
+  //match array
 });
 
 module.exports = mongoose.model("User", userSchema);
