@@ -1,11 +1,11 @@
 var mongoose = require("mongoose");
 
 var matchSchema = new mongoose.Schema({
-    selfUserName : String,
-    enemyUserName : String,
+    userName1 : String,
+    userName2 : String,
     matchStatu : Boolean,
-    selfScore : String,
-    enemyScore : String,
+    score1 : Number,
+    score2 : Number,
     addTime : Date
 });
 

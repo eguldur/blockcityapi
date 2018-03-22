@@ -126,6 +126,7 @@ app.get("/register", function(req, res){
 
 //ADD USER TO QUEUE
 app.get("/addUserToQueue", function(req, res){
+
   var userName = req.query.userName;
   Queue.findOne({'userName' : userName}, function(err, exists){
     if(err){
@@ -137,12 +138,22 @@ app.get("/addUserToQueue", function(req, res){
       res.json({status: 200, messages: 'ok', user:exists});
     }
     else{
-      Queue.create({userName : userName}, function(err, user){
+      Queue.create({userName : userName, addTime : new Date()}, function(err, user){
         if(err){
           console.log(err);
         }else{
           console.log("User kuyruga eklendi..!");
           res.json({status: 200, messages: 'ok', addedUser : user});
+          Queue.count({}, function(err, count){
+            if(count > 1){
+              Queue.find({}).sort({addTime : 'asc'}).limit(2).exec(function(err, readyUsers){
+                var obj = JSON.parse(readyUsers);
+                var userName1 = obj[0].userName;
+                var userName2 = obj[1].userName;
+                Match.create({})
+              });
+            }
+          });
         }
       });
     }
@@ -154,7 +165,8 @@ app.get("/addUserToQueue", function(req, res){
 app.get("/update/score/timeMode", function(req, res){
   var data = {
     userName : req.query.userName,
-    timeMode : req.query.timeHighScore
+    timeMode : req.query.timeHighScore,
+    addTime : new Date()
   }
   var query = {
     userName : req.query.userName,
@@ -182,6 +194,17 @@ app.get("/update/score/timeMode", function(req, res){
         console.log("LocalScore < dbScore Failed to update.!");
         res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
       }    
+    }
+    else{
+      //User'a ait skor yoksa yarat
+      Score.create(data, function(err, score){
+        if(err){
+          console.log(err);
+        }
+        if(score){
+          res.json({status: 200, messages:'ok', score:score});
+        }
+      });
     }
   });
 });
@@ -219,6 +242,17 @@ app.get("/update/score/classicMode", function(req, res){
         console.log("LocalScore < dbScore Failed to update.!");
         res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
       }    
+    }
+    else{
+      //User'a ait skor yoksa yarat
+      Score.create(data, function(err, score){
+        if(err){
+          console.log(err);
+        }
+        if(score){
+          res.json({status: 200, messages:'ok', score:score});
+        }
+      });
     }
   });
 });
@@ -278,9 +312,7 @@ app.get("/queues", function(req, res){
 //GETCOIN
 app.get("/getUserData", function(req, res){
 
-  User.findOne({userName :req.query.userName, 
-                googleEmail: req.query.googleEmail, 
-                googleUserId:req.query.googleUserId}, function(err, user){
+  User.findOne({userName :req.query.userName}, function(err, user){
     if(err){
       console.log(err);
     }
@@ -292,7 +324,7 @@ app.get("/getUserData", function(req, res){
 
 //GET TIME MODE LEADERBOARD
 app.get("/getTimeModeLeaderboard", function(req, res){
-  Score.find({}).sort({timeMode: '-1'}).limit(2).exec(function(error, leaderboard){
+  Score.find({}).sort({timeMode: 'desc'}).limit(7).exec(function(error, leaderboard){
     if(error){
       console.log(error);
     }else{
