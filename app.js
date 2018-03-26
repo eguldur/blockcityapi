@@ -81,9 +81,9 @@ app.get("/update/coin", function(req, res){
 
 //KULLANICI KAYIT
 app.get("/register", function(req, res){
-    var googleUserId =  req.query.googleUserId;
+   // var googleUserId =  req.query.googleUserId;
     var googleUserName = req.query.googleUserName;
-    var googleEmail = req.query.googleEmail;
+    //var googleEmail = req.query.googleEmail;
     var userName = req.query.userName;
     var changeUserName = false;
     var numberOfWins = "0";
@@ -91,7 +91,7 @@ app.get("/register", function(req, res){
     var coin =  "100";
     var timeModeHighScore = "0";
     var classicModeHighScore = "0";
-  
+
   User.findOne({'userName' : req.query.userName}, function(err, exists){
     if (err) {
       console.log(err);
@@ -102,9 +102,9 @@ app.get("/register", function(req, res){
       res.json({status: 200, messages: 'ok', user: exists})
     }else{
       User.create({
-        googleUserId: googleUserId,
+        //googleUserId: googleUserId,
         googleUserName: googleUserName,
-        googleEmail : googleEmail,
+        //googleEmail : googleEmail,
         userName : userName,
         changeUserName : changeUserName,
         numberOfWins : numberOfWins,
