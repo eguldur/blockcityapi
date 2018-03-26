@@ -5,7 +5,7 @@ var userSchema = new mongoose.Schema({
   googleUserId : String,
   googleUserName : String, 
   googleEmail : String,
-  userName : {type: String, index: {unique: true}},
+  userName : String,
   changeUserName : Boolean,
   coin : Number,
   numberOfWins : String,
