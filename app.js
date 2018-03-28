@@ -65,9 +65,9 @@ app.get("/update/coin", function(req, res){
     coin : req.query.coin
   }
   var query = {
-    'userName' : req.query.userName,
-    'googleEmail' : req.query.googleEmail,
-    'googleUserId' : req.query.googleUserId
+    'userName' : req.query.userName
+    //'googleEmail' : req.query.googleEmail,
+    //'googleUserId' : req.query.googleUserId
   }
 
   User.findOneAndUpdate(query, data, {}, function(err, data){

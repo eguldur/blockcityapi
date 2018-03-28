@@ -1,5 +1,4 @@
 var mongoose = require("mongoose");
-var findOneOrCreate = require('mongoose-find-one-or-create');
 
 var userSchema = new mongoose.Schema({
   googleUserId : String,
