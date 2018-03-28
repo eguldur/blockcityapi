@@ -8,8 +8,8 @@ var userSchema = new mongoose.Schema({
   userName : String,
   changeUserName : Boolean,
   coin : Number,
-  numberOfWins : String,
-  numberOfDefeats : String
+  numberOfWins : Number,
+  numberOfDefeats : Number
   //score array
   //match array
 });

@@ -5,6 +5,6 @@ var scoreSchema = new mongoose.Schema({
     timeMode : Number,
     classicMode : Number,
     addTime : Date
-});
+}, {timestamps : true});
 
 module.exports = mongoose.model("Score", scoreSchema);
