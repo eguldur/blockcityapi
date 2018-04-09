@@ -523,7 +523,7 @@ app.get("/update/score/timeMode", function(req, res){
     }
     else{
       //User'a ait skor yoksa yarat
-      Score.create(data, async function(err, score){
+      Score.create(data, function(err, score){
         if(err){
           console.log(err);
         }
