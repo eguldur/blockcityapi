@@ -513,13 +513,13 @@ app.get("/update/score/timeMode", function(req, res){
         if(parseInt(dbScore) < parseInt(req.query.timeHighScore)){
          exists.timeMode = req.query.timeHighScore;
         }else{
-          console.log("LocalScore < dbScore Failed to update.!");
-          res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
+          console.log("LocalScore < dbScore Failed to update.!");  
         }
       }
       else{
         console.log("Kolon mevcut degil");
       }
+      res.json({status: 200, messages:'ok'});
     }
     else{
       //User'a ait skor yoksa yarat
