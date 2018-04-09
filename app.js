@@ -508,18 +508,14 @@ app.get("/update/score/timeMode", function(req, res){
     if(exists){
       console.log("User exist");
       var dbScore = exists.timeMode;
-    
-      if(dbScore){
-        if(parseInt(dbScore) < parseInt(req.query.timeHighScore)){
-         exists.timeMode = req.query.timeHighScore;
-        }else{
-          console.log("LocalScore < dbScore Failed to update.!");  
-        }
-      }
-      else{
-        console.log("Kolon mevcut degil");
-      }
-      res.json({status: 200, messages:'ok'});
+      if(parseInt(dbScore) < parseInt(req.query.timeHighScore)){
+        exists.timeMode = req.query.timeHighScore;
+        exists.save();
+        res.json({status: 200, messages:'ok'});
+       }else{
+         console.log("LocalScore < dbScore Failed to update.!");
+         res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
+       }
     }
     else{
       //User'a ait skor yoksa yarat
@@ -554,15 +550,8 @@ app.get("/update/score/classicMode", function(req, res){
       console.log("User exist");
       var dbScore = exists.classicMode;
       if(parseInt(dbScore) < parseInt(req.query.classicHighScore)){
-
-        Score.findOneAndUpdate(query, data, {upsert : true}, function(err, data){
-          if(err){
-            console.log(err)
-          }else{
-            console.log("User's high score has been improved.!");
-            res.json({status: 200, messages: 'ok', data: data});
-          }
-        });
+        exists.classicMode = req.query.classicHighScore;
+        res.json({status: 200, messages: 'ok', data: data});
       }
       else{
         console.log("LocalScore < dbScore Failed to update.!");
