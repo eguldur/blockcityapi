@@ -12,8 +12,9 @@ var userSchema = new mongoose.Schema({
   numberOfDefeats : Number,
   //score array
   //match array
-  friends: [{userName : String}],
-  waiting: [{userName : String, matchId : String, addTime : { type : Date, default: Date.now }}],
+  friends: [{userName : String}],                 //martchtpe
+  waiting: [{userName : String, matchId : String, matchType: String,
+     accepted: {type : Number, default: 0}, addTime : { type : Date, default: Date.now }}],
   finished : [{userName: String, matchId : String, myScore: Number, enemyScore : Number, matchStatus : String, addTime : { type : Date, default: Date.now }}]
 });
 

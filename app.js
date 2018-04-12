@@ -222,7 +222,8 @@ app.get("/createMatch", function(req, res){
               userName1 : userName1,
               userName2 : userName2,
               score1 : -1,
-              score2 : -1
+              score2 : -1,
+              matchType : req.query.matchType
             }, function(err, data){
               if(err)
                 console.log(err);
@@ -241,7 +242,8 @@ app.get("/createMatch", function(req, res){
               userName1 : userName1,
               userName2 : userName2,
               score1 : -1,
-              score2 : -1
+              score2 : -1,
+              matchType : req.query.matchType
             }, function(err, data){
               if(err)
                 console.log(err);
@@ -266,7 +268,8 @@ app.get("/createFriendMatch", function(req, res){
     userName1 : userName1,
     userName2 : userName2,
     score1 : -1,
-    score2 : -1
+    score2 : -1,
+    matchType : req.query.matchType
   }, function(err, data){
     if(err)
       console.log(err);
@@ -331,11 +334,13 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 4000;
                       result.numberOfWins +=1;
                       result.finished.push({
-                        userName : data.userName1,
+                        userName : data.userName2,
                         matchId : data.matchId,
                         myScore : data.score1,
                         enemyScore : data.score2,
-                        matchStatus : "win"});
+                        matchStatus : "win",
+                        matchType : data.matchType
+                      });
                       result.save();
                       }
                   });
@@ -348,11 +353,13 @@ app.get("/update/match/score", function(req,res){
                     if(result){
                       result.numberOfDefeats += 1; 
                       result.finished.push({
-                        userName : data.userName2, 
+                        userName : data.userName1, 
                         matchId : data.matchId, 
                         myScore : data.score2, 
                         enemyScore : data.score1,
-                        matchStatus : "lose"});
+                        matchStatus : "lose",
+                        matchType : data.matchType
+                      });
                       result.save();
                     }
                   });
@@ -366,11 +373,13 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 4000;
                       result.numberOfWins += 1;
                           result.finished.push({
-                            userName : data.userName2,
+                            userName : data.userName1,
                             matchId : data.matchId,
                             myScore : data.score2,
                             enemyScore : data.score1,
-                            matchStatus : "win"});
+                            matchStatus : "win",
+                            matchType : data.matchType
+                          });
                           result.save();
                     }
                   });
@@ -382,17 +391,19 @@ app.get("/update/match/score", function(req,res){
                     if(result){
                       result.numberOfDefeats += 1;
                       result.finished.push({
-                        userName : data.userName1,
+                        userName : data.userName2,
                         matchId : data.matchId,
                         myScore : data.score1,
                         enemyScore : data.score2,
-                        matchStatus : "lose"});
+                        matchStatus : "lose",
+                        matchType : data.matchType
+                      });
                       result.save();
                     }
                   });
                 }
                 //Mac BITTI BEKLENEN MACI SIL
-                User.update({'userName' : data.userName2}, {$pull: {'waiting': {userName : data.userName1, matchId : data.matchId}}}, function(err, data){
+                User.update({'userName' : data.userName2}, {$pull: {'waiting': {userName : data.userName1, matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
                   if(err){
                     console.log(err);
                   }
@@ -401,12 +412,13 @@ app.get("/update/match/score", function(req,res){
                   }
                 });
               }else{
+                //meydan okuyan mac bitti rakibin waiting ekle
                 User.findOne({userName: data.userName2}).populate('waiting').exec(function(err, result){
                   if(err){
                     console.log(err);
                   }
                   if(result){
-                    result.waiting.push({userName : data.userName1, matchId : data.matchId});
+                    result.waiting.push({userName : data.userName1, matchId : data.matchId, matchType : data.matchType});
                     result.save();
                   }
                 });
