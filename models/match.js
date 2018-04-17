@@ -1,9 +1,10 @@
 var mongoose = require("mongoose");
 
 var matchSchema = new mongoose.Schema({
-    matchId : String,
     userName1 : String,
     userName2 : String,
+    userId1 : String,
+    userId2 : String,
     matchType : String,
     score1 : Number,
     score2 : Number

@@ -12,10 +12,30 @@ var userSchema = new mongoose.Schema({
   numberOfDefeats : Number,
   //score array
   //match array
-  friends: [{userName : String}],                 //martchtpe
-  waiting: [{userName : String, matchId : String, matchType: String,
-     accepted: {type : Number, default: 0}, addTime : { type : Date, default: Date.now }}],
-  finished : [{userName: String, matchId : String, myScore: Number, enemyScore : Number, matchStatus : String, addTime : { type : Date, default: Date.now }}]
+  friends: [{userId : String, userName : String}],                 //martchtpe
+  waiting: [{
+    googleUserId : String,
+    userName : String, 
+    matchId : String, 
+    matchType: String,
+    accepted: {type : Number, default: 0}, 
+    addTime : { type : Date, default: Date.now }}],
+  finished : [{
+    userName: String, 
+    userId : String,
+    matchId : String, 
+    myScore: Number, 
+    enemyScore : Number, 
+    matchStatus : String, 
+    matchType: String, 
+    addTime : { type : Date, default: Date.now }}],
+  sentMatches : [{
+    googleUserId : String,
+    userName: String, 
+    matchId : String, 
+    myScore: Number, 
+    matchType: String, 
+    addTime : { type : Date, default: Date.now }}]
 });
 
 

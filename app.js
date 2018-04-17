@@ -25,9 +25,11 @@ app.get("/", function(req, res) {
 
 //FEEDBACK
 app.get("/feedback", function(req, res){
+  var userId = req.query.userId;
   var userName = req.query.userName;
   var messages = req.query.messages;
   Feedback.create({
+    googleUserId : userId,
     userName: userName,
     messages : messages
     },function(err, feedback){
@@ -45,21 +47,20 @@ app.get("/feedback", function(req, res){
 app.get("/update/username", function(req, res) {
   var data = {
     userName: req.query.userName,
-    googleUserName: req.query.googleUserName,
     changeUserName:true
   }
   var query = {
-    'googleUserName':req.query.googleUserName,
+    'googleUserId':req.query.userId,
     'changeUserName':false
   }
-//User name control yapilacak
-  User.findOneAndUpdate(query, data, {}, function (err, data) {
-    if(err){
-      console.log(err);
-    }else {
-      res.json({status: 200, messages: 'ok', user: data})
-    }
-  });
+  //User name control yapilacak
+    User.findOneAndUpdate(query, data, {}, function (err, data) {
+      if(err){
+        console.log(err);
+      }else {
+        res.json({status: 200, messages: 'ok', user: data})
+      }
+    });
 });
 
 //UPDATE COIN
@@ -68,7 +69,7 @@ app.get("/update/coin", function(req, res){
     coin : req.query.coin
   }
   var query = {
-    'userName' : req.query.userName
+    'googleUserId' : req.query.userId
     //'googleEmail' : req.query.googleEmail,
     //'googleUserId' : req.query.googleUserId
   }
@@ -95,7 +96,7 @@ app.get("/register", function(req, res){
     var timeModeHighScore = "0";
     var classicModeHighScore = "0";
 
-  User.findOne({'userName' : req.query.userName}, function(err, exists){
+  User.findOne({'googleUserId' : req.query.googleUserId}, function(err, exists){
     if (err) {
       console.log(err);
     }
@@ -129,7 +130,7 @@ app.get("/register", function(req, res){
 
 //GET FRIENDS
 app.get("/getFriends", function(req, res){
-  User.findOne({userName: req.query.userName}).populate('friends').exec(function(err, result){
+  User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
     if(err){
       console.log(err);
     }
@@ -141,38 +142,67 @@ app.get("/getFriends", function(req, res){
 
 //GET WAITING MATCH
 app.get("/getWaitingMatches", function(req, res){
-  User.findOne({userName: req.query.userName}).populate('waiting').exec(function(err, result){
+  User.findOne({googleUserId: req.query.userId}, function(err, result){
     if(err){
       console.log(err);
     }
     if(result){
-      res.json({status: 200, messages:'ok', waitingMatches: result});
+      waiting = result.waiting.filter(function(item){
+        return (item.matchType == req.query.matchType);
+      });
+      console.log(waiting.reverse());
+
+      sent = result.sentMatches.filter(function(item){
+        return (item.matchType == req.query.matchType);
+      });
+      console.log(sent.reverse());
+      res.json({status: 200, messages:'ok', waitingMatches: waiting.reverse(), sentMatches: sent.reverse()});
     }
   });
 });
 
 //GET FINISHED MATCH
 app.get("/getFinishedMatches", function(req, res){
-  User.findOne({userName: req.query.userName}).populate('finished').exec(function(err, result){
+  User.findOne({googleUserId: req.query.userId}, function(err, result){
     if(err){
       console.log(err);
     }
     if(result){
-      res.json({status: 200, messages:'ok', finishedMatches: result});
+      last =  function(array, n) {
+        if (array == null) 
+          return void 0;
+        if (n == null) 
+           return array[array.length - 1];
+        return array.slice(Math.max(array.length - n, 0)); 
+        };
+        console.log(last(result.finished, 20));
+        var tempArray = [];
+        //mac tipine gore ayir
+        result.finished.forEach(function(item){
+          if(item["matchType"] == req.query.matchType){
+            tempArray.push(item);
+          }
+        });
+        console.log(tempArray);
+        //ters cevirip gonder
+      res.json({status: 200, messages:'ok', finishedMatches: last(tempArray, 20).reverse()});
     }
   });
 });
 
 //ADD FRIEND
 app.get("/addFriend", function(req, res){
-  User.findOne({'userName' : req.query.userName, 'friends': {$elemMatch:{userName : req.query.friendUserName}}}, function(err, friend){
+  User.findOne({'googleUserId' : req.query.userId, 'friends': {$elemMatch:{userId : req.query.friendUserId}}}, function(err, friend){
+    if(err){
+      console.log(err);
+    }
     if(friend){
       console.log("Friend found");
       res.json({status:200, messages: 'ok', user:friend});
     }else{
       console.log("Friend not found");
-      User.findOne({userName: req.query.userName}).populate('friends').exec(function(err, result){
-        result.friends.push({userName : req.query.friendUserName});
+      User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
+        result.friends.push({userName : req.query.friendUserName, userId : req.query.friendUserId});
         result.save();
         res.json({status : 200, messages: 'ok'});
       });
@@ -205,57 +235,48 @@ app.get("/searchFriend", function(req, res){
 
 //CREATE RANDOM MATCH
 app.get("/createMatch", function(req, res){
-  //User sayisini getir
-  User.count().exec(function (err, count) {
-    //Random bir user sec
-    var random = Math.floor(Math.random() * count);
-    User.findOne().skip(random).exec(
-      function (err, result) {
-        if(req.query.userName === result.userName){
-          console.log("Patladik");
-          random = Math.floor(Math.random() * count);
-          User.findOne().skip(random).exec(function(err, result){
-            var userName1 = req.query.userName; //Meydan okuyan username
-            var userName2 = result.userName;  //Meydan okunan username
-            Match.create({
-              matchId : shortid.generate(),
-              userName1 : userName1,
-              userName2 : userName2,
-              score1 : -1,
-              score2 : -1,
-              matchType : req.query.matchType
-            }, function(err, data){
-              if(err)
-                console.log(err);
-              else{
-                console.log("Match olusturuldu...!");
-                res.json({status: 200, messages: 'ok', data:data});
-              }
-            });
-          });
-        } else{
-          User.findOne().skip(random).exec(function(err, result){
-            var userName1 = req.query.userName; //Meydan okuyan username
-            var userName2 = result.userName;  //Meydan okunan username
-            Match.create({
-              matchId : shortid.generate(),
-              userName1 : userName1,
-              userName2 : userName2,
-              score1 : -1,
-              score2 : -1,
-              matchType : req.query.matchType
-            }, function(err, data){
-              if(err)
-                console.log(err);
-              else{
-                console.log("Match olusturuldu...!");
-                res.json({status: 200, messages: 'ok', data:data});
-              }
-            });
-          });
+  User.find({}, function(err, users) {
+    if(err){
+      console.log(err);
+    }
+    if(users){
+      var userMap = [];
+
+      users.forEach(function(user) {
+        if(user.googleUserId !== req.query.userId){
+          userMap.push(user._id);
         }
-          console.log(result);
-        })
+      });
+      //Random bir user sec
+      var random = Math.floor(Math.random() * userMap.length);
+      console.log(userMap[random]);
+
+      User.findOne({_id : userMap[random]}, function(err, result){
+        if(req.query.userId !== result.googleUserId){
+            var userName1 = req.query.userName; //Meydan okuyan username
+            var userName2 = result.userName;  //Meydan okunan username
+            var userId1 = req.query.userId; //Meydan okuyan userId
+            var userId2 = result.googleUserId;  //Meydan okunan userId
+
+            Match.create({
+              userName1 : userName1,
+              userName2 : userName2,
+              userId1 : userId1,
+              userId2 : userId2,
+              score1 : -1,
+              score2 : -1,
+              matchType : req.query.matchType
+            }, function(err, data){
+              if(err)
+                console.log(err);
+              else{
+                console.log("Match olusturuldu...!");
+                res.json({status: 200, messages: 'ok', matchId:data._id});
+              }
+            });
+        }
+    });
+  }
   });
 });
 
@@ -263,10 +284,13 @@ app.get("/createMatch", function(req, res){
 app.get("/createFriendMatch", function(req, res){
   var userName1 = req.query.userName; //Meydan okuyan username
   var userName2 = req.query.friendUserName;  //Meydan okunan username
+  var userId1 = req.query.userId; //Meydan okuyan userId
+  var userId2 = req.query.friendUserId;  //Meydan okunan userId
   Match.create({
-    matchId : shortid.generate(),
     userName1 : userName1,
     userName2 : userName2,
+    userId1 : userId1,
+    userId2 : userId2,
     score1 : -1,
     score2 : -1,
     matchType : req.query.matchType
@@ -280,53 +304,67 @@ app.get("/createFriendMatch", function(req, res){
   });
 });
 
+app.get("/deleteWaitingMatch", function(req, res){
+  User.update({'userName' : req.query.userName}, {$pull: {'waiting': {matchId : req.query.matchId}}}, function(err, data){
+    if(err){
+      console.log(err);
+    }
+    if(data){
+      console.log("silindi");
+    }
+  });
+});
+
 //UPDATE MATCH SCORE
 app.get("/update/match/score", function(req,res){
   Match.findOne({
-    'matchId' : req.query.matchId
+    '_id' : req.query.matchId
   },function(err,data){
     if(err)
       console.log(err);
     if(data){
       var data1 = {
-        userName1 : req.query.userName,
+        userId1 : req.query.userId,
         score1 : req.query.score,
       }
 
       var data2 = {
-        userName2 : req.query.userName,
+        userId2 : req.query.userId,
         score2 : req.query.score,
       }
 
-      if(data.userName1 == req.query.userName)
+      if(data.userId1 == req.query.userId)
         var tempData = data1;
-      if(data.userName2 == req.query.userName)
+      if(data.userId2 == req.query.userId)
         var tempData = data2;
 
+      console.log(tempData);
       var query = {
-        "matchId" : req.query.matchId
+        "_id" : req.query.matchId
       }
       Match.findOneAndUpdate(query, tempData, {}, function(err, data){
         if(err){
           console.log(err)
         }else{
           Match.findOne({
-            'matchId': req.query.matchId
+            '_id': req.query.matchId
           }, function(err, data){
             if(err){
               console.log(err);
             }
             if(data){
-              var meydanOkuyan = data.userName1;
-              var meydanOkunan = data.userName2;
+              var meydanOkuyan = data.userId1;
+              var meydanOkunan = data.userId2;
 
               if(data.score1 != -1 && data.score2 != -1){
                 //COINLERI GUNCELLE
                 console.log("Coinler guncellenecek");
 
                 if(data.score1 > data.score2){
+                  console.log(data.score1);
+                  console.log(data.score2);
                   //Meydan okuyan kazanirsa
-                  User.findOne({userName : data.userName1}, function(err, result){
+                  User.findOne({googleUserId : data.userId1}, function(err, result){
                     if(err){
                       console.log(err)
                     }else{
@@ -334,6 +372,7 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 4000;
                       result.numberOfWins +=1;
                       result.finished.push({
+                        userId : data.userId2,
                         userName : data.userName2,
                         matchId : data.matchId,
                         myScore : data.score1,
@@ -346,13 +385,14 @@ app.get("/update/match/score", function(req,res){
                   });
 
                   //Meydan Okunan Finished ekle
-                  User.findOne({userName: data.userName2}).populate('finished').exec(function(err, result){
+                  User.findOne({googleUserId: data.userId2}).populate('finished').exec(function(err, result){
                     if(err){
                       console.log(err);
                     }
                     if(result){
                       result.numberOfDefeats += 1; 
                       result.finished.push({
+                        userId : data.userId1,
                         userName : data.userName1, 
                         matchId : data.matchId, 
                         myScore : data.score2, 
@@ -363,7 +403,49 @@ app.get("/update/match/score", function(req,res){
                       result.save();
                     }
                   });
-                }else{
+                }
+                //beraberlik
+                if(data.score1 == data.score2){
+                  User.findOne({googleUserId : data.userId2}, function(err, result){
+                    if(err){
+                      console.log(err)
+                    }else{
+                      //Meydan okunana  Finished ekle
+                      result.coin += 0;
+                      result.numberOfWins += 0;
+                          result.finished.push({
+                            userId : data.userId1,
+                            userName : data.userName1,
+                            matchId : data.matchId,
+                            myScore : data.score2,
+                            enemyScore : data.score1,
+                            matchStatus : "draw",
+                            matchType : data.matchType
+                          });
+                          result.save();
+                    }
+                  });
+                  //Meydan okuyan Finished ekle
+                  User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
+                    if(err){
+                      console.log(err);
+                    }
+                    if(result){
+                      result.numberOfDefeats += 0;
+                      result.finished.push({
+                        userId: data.userId2,
+                        userName : data.userName2,
+                        matchId : data.matchId,
+                        myScore : data.score1,
+                        enemyScore : data.score2,
+                        matchStatus : "draw",
+                        matchType : data.matchType
+                      });
+                      result.save();
+                    }
+                  });
+                }
+                if(data.score1 < data.score2){
                   //Meydan okunan kazanirsa
                   User.findOne({userName : data.userName2}, function(err, result){
                     if(err){
@@ -403,7 +485,17 @@ app.get("/update/match/score", function(req,res){
                   });
                 }
                 //Mac BITTI BEKLENEN MACI SIL
-                User.update({'userName' : data.userName2}, {$pull: {'waiting': {userName : data.userName1, matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
+                User.update({'googleUserId' : data.userId2}, {$pull: {'waiting': {matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
+                  if(err){
+                    console.log(err);
+                  }
+                  if(data){
+                    console.log("silindi");
+                  }
+                });
+
+                //gonderilen maci sil
+                User.update({'googleUserId' : data.userId1}, {$pull: {'sentMatches': {userId : data.userId1, userName : data.userName1, matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
                   if(err){
                     console.log(err);
                   }
@@ -413,12 +505,29 @@ app.get("/update/match/score", function(req,res){
                 });
               }else{
                 //meydan okuyan mac bitti rakibin waiting ekle
-                User.findOne({userName: data.userName2}).populate('waiting').exec(function(err, result){
+                User.findOne({googleUserId: data.userId2}).populate('waiting').exec(function(err, result){
                   if(err){
                     console.log(err);
                   }
                   if(result){
-                    result.waiting.push({userName : data.userName1, matchId : data.matchId, matchType : data.matchType});
+                    result.waiting.push({googleUserId : data.userId1, userName : data.userName1, matchId : data._id, matchType : data.matchType});
+                    result.save();
+                  }
+                });
+
+                User.findOne({googleUserId: data.userId1},function(err, result){
+                  if(err){
+                    console.log(err);
+                  }
+                  if(result){
+                    console.log("sent matches olusturuldu");
+                    result.sentMatches.push({
+                      googleUserId : data.userId2,
+                      userName : data.userName2,
+                      myScore : data.score1,
+                      matchType : data.matchType,
+                      matchId : data._id
+                    });
                     result.save();
                   }
                 });
@@ -510,7 +619,7 @@ app.get("/update/score/timeMode", function(req, res){
     timeMode : req.query.timeHighScore
   }
   var query = {
-    userName : req.query.userName,
+    googleUserId : req.query.userId
   }
 
   Score.findOne({'userName': req.query.userName}, function(err,exists){
@@ -551,7 +660,7 @@ app.get("/update/score/classicMode", function(req, res){
     classicMode : req.query.classicHighScore
   }
   var query = {
-    userName : req.query.userName,
+    googleUserId : req.query.userId,
   }
 
   Score.findOne({'userName': req.query.userName}, function(err,exists){
@@ -584,16 +693,6 @@ app.get("/update/score/classicMode", function(req, res){
   });
 });
 
-//UPDATE MATCH RESULT(EKSIK)
-app.get("/update/matchResult", function(req, res){
-  var matchResult = req.query.matchResult;
-
-  if(matchResult == "win"){
-    
-  }else{
-
-  }
-});
 
 //SHOW USERS
 app.get("/users", function(req, res){
@@ -639,7 +738,7 @@ app.get("/queues", function(req, res){
 //GET COIN
 app.get("/getUserData", function(req, res){
 
-  User.findOne({userName :req.query.userName}, function(err, user){
+  User.findOne({googleUserId :req.query.userId}, function(err, user){
     if(err){
       console.log(err);
     }
@@ -664,11 +763,10 @@ app.get("/getTimeModeLeaderboard", function(req, res){
 
 //GET CLASSIC MODE LEADERBOARD
 app.get("/getClassicModeLeaderboard", function(req, res){
-  Score.find({}).sort({timeMode: '-1'}).limit(10).exec(function(error, leaderboard){
+  Score.find({}).sort({classicMode: 'desc'}).limit(10).exec(function(error, leaderboard){
     if(error){
       console.log(error);
     }else{
-      console.log(typeof leaderboard);
       console.log("***********CLASSIC MODE LEADERBOARD***********");
       console.log(leaderboard);
       res.json({status: 200, messages: 'ok', leaderboard : leaderboard});
