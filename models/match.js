@@ -7,7 +7,9 @@ var matchSchema = new mongoose.Schema({
     userId2 : String,
     matchType : String,
     score1 : Number,
-    score2 : Number
+    score2 : Number,
+    avatarId1 : {type : Number, default:0},
+    avatarId2 : {type : Number, default:0}
 }, {timestamps : true});
 
 module.exports = mongoose.model("Match", matchSchema);

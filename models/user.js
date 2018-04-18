@@ -8,19 +8,27 @@ var userSchema = new mongoose.Schema({
   userName : String,
   changeUserName : Boolean,
   coin : Number,
+  avatarId : {type: Number, default : 0},
   numberOfWins : Number,
   numberOfDefeats : Number,
   //score array
   //match array
-  friends: [{userId : String, userName : String}],                 //martchtpe
+  friends: [{
+    avatarId : Number,
+    userId : String, 
+    userName : String}],    
+
   waiting: [{
+    avatarId : Number,
     googleUserId : String,
     userName : String, 
     matchId : String, 
     matchType: String,
     accepted: {type : Number, default: 0}, 
     addTime : { type : Date, default: Date.now }}],
+
   finished : [{
+    avatarId : Number,
     userName: String, 
     userId : String,
     matchId : String, 
@@ -29,7 +37,9 @@ var userSchema = new mongoose.Schema({
     matchStatus : String, 
     matchType: String, 
     addTime : { type : Date, default: Date.now }}],
+
   sentMatches : [{
+    avatarId : Number,
     googleUserId : String,
     userName: String, 
     matchId : String, 

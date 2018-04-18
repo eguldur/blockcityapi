@@ -83,6 +83,28 @@ app.get("/update/coin", function(req, res){
   })
 });
 
+
+//UPDATE AVATARID
+app.get("/update/avatarId", function(req, res){
+  var data = {
+    avatarId : req.query.avatarId
+  }
+  var query = {
+    'googleUserId' : req.query.userId
+    //'googleEmail' : req.query.googleEmail,
+    //'googleUserId' : req.query.googleUserId
+  }
+
+  User.findOneAndUpdate(query, data, {}, function(err, data){
+    if(err){
+      console.log(err)
+    }else{
+      res.json({status: 200, messages: 'Change Avatar'})
+    }
+  })
+});
+
+
 //REGISTER USER
 app.get("/register", function(req, res){
     var googleUserId =  req.query.googleUserId;
@@ -135,7 +157,24 @@ app.get("/getFriends", function(req, res){
       console.log(err);
     }
     if(result){
-      res.json({status: 200, messages:'ok', friends: result});
+      var friendsArray = [];
+      var arraySize = result.friends.length;
+      result.friends.forEach(function(friend){
+        User.findOne({googleUserId : friend.userId}, function(err, data){
+          if(data){
+            friendsArray.push({
+              userId : friend.userId,
+              userName : data.userName,
+              avatarId : data.avatarId
+            });
+            arraySize--;
+            if(arraySize === 0){
+              console.log(friendsArray);
+              res.json({status: 200, messages:'Get Friends', friends: friendsArray});
+            }
+          }
+        });
+      });
     }
   });
 });
@@ -202,7 +241,7 @@ app.get("/addFriend", function(req, res){
     }else{
       console.log("Friend not found");
       User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
-        result.friends.push({userName : req.query.friendUserName, userId : req.query.friendUserId});
+        result.friends.push({avatarId : req.query.avatarId, userName : req.query.friendUserName, userId : req.query.friendUserId});
         result.save();
         res.json({status : 200, messages: 'ok'});
       });
@@ -257,6 +296,8 @@ app.get("/createMatch", function(req, res){
             var userName2 = result.userName;  //Meydan okunan username
             var userId1 = req.query.userId; //Meydan okuyan userId
             var userId2 = result.googleUserId;  //Meydan okunan userId
+            var avatarId1 = req.query.avatarId;
+            var avatarId2 = result.avatarId;
 
             Match.create({
               userName1 : userName1,
@@ -265,7 +306,9 @@ app.get("/createMatch", function(req, res){
               userId2 : userId2,
               score1 : -1,
               score2 : -1,
-              matchType : req.query.matchType
+              matchType : req.query.matchType,
+              avatarId1 : avatarId1,
+              avatarId2 : avatarId2
             }, function(err, data){
               if(err)
                 console.log(err);
@@ -286,6 +329,9 @@ app.get("/createFriendMatch", function(req, res){
   var userName2 = req.query.friendUserName;  //Meydan okunan username
   var userId1 = req.query.userId; //Meydan okuyan userId
   var userId2 = req.query.friendUserId;  //Meydan okunan userId
+  var avatarId1 = req.query.avatarId;
+  var avatarId2 = req.query.friendAvatarId;
+
   Match.create({
     userName1 : userName1,
     userName2 : userName2,
@@ -293,7 +339,9 @@ app.get("/createFriendMatch", function(req, res){
     userId2 : userId2,
     score1 : -1,
     score2 : -1,
-    matchType : req.query.matchType
+    matchType : req.query.matchType,
+    avatarId1 : avatarId1,
+    avatarId2 : avatarId2
   }, function(err, data){
     if(err)
       console.log(err);
@@ -305,12 +353,14 @@ app.get("/createFriendMatch", function(req, res){
 });
 
 app.get("/deleteWaitingMatch", function(req, res){
-  User.update({'userName' : req.query.userName}, {$pull: {'waiting': {matchId : req.query.matchId}}}, function(err, data){
+  User.update({'googleUserId' : req.query.userId}, {$pull: {'waiting': {matchId : req.query.matchId}}}, function(err, data){
     if(err){
       console.log(err);
     }
     if(data){
       console.log("silindi");
+      //matchId sinden useId1 bul sonra useri ara puani ver
+      res.json({status: 200, messages: 'Delete waiting match'});
     }
   });
 });
@@ -359,7 +409,8 @@ app.get("/update/match/score", function(req,res){
               if(data.score1 != -1 && data.score2 != -1){
                 //COINLERI GUNCELLE
                 console.log("Coinler guncellenecek");
-
+                
+                //meydan okuyan kazanirsa
                 if(data.score1 > data.score2){
                   console.log(data.score1);
                   console.log(data.score2);
@@ -372,6 +423,7 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 4000;
                       result.numberOfWins +=1;
                       result.finished.push({
+                        avatarId : data.avatarId2,
                         userId : data.userId2,
                         userName : data.userName2,
                         matchId : data.matchId,
@@ -392,6 +444,7 @@ app.get("/update/match/score", function(req,res){
                     if(result){
                       result.numberOfDefeats += 1; 
                       result.finished.push({
+                        avatarId : data.avatarId1,
                         userId : data.userId1,
                         userName : data.userName1, 
                         matchId : data.matchId, 
@@ -404,6 +457,7 @@ app.get("/update/match/score", function(req,res){
                     }
                   });
                 }
+                
                 //beraberlik
                 if(data.score1 == data.score2){
                   User.findOne({googleUserId : data.userId2}, function(err, result){
@@ -414,6 +468,7 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 0;
                       result.numberOfWins += 0;
                           result.finished.push({
+                            avatarId : data.avatarId1,
                             userId : data.userId1,
                             userName : data.userName1,
                             matchId : data.matchId,
@@ -433,6 +488,7 @@ app.get("/update/match/score", function(req,res){
                     if(result){
                       result.numberOfDefeats += 0;
                       result.finished.push({
+                        avatarId : data.avatarId2,
                         userId: data.userId2,
                         userName : data.userName2,
                         matchId : data.matchId,
@@ -445,6 +501,8 @@ app.get("/update/match/score", function(req,res){
                     }
                   });
                 }
+
+                //meydan okunan kazanirsa
                 if(data.score1 < data.score2){
                   //Meydan okunan kazanirsa
                   User.findOne({userName : data.userName2}, function(err, result){
@@ -455,6 +513,7 @@ app.get("/update/match/score", function(req,res){
                       result.coin += 4000;
                       result.numberOfWins += 1;
                           result.finished.push({
+                            avatarId : data.avatarId1,
                             userName : data.userName1,
                             matchId : data.matchId,
                             myScore : data.score2,
@@ -473,6 +532,7 @@ app.get("/update/match/score", function(req,res){
                     if(result){
                       result.numberOfDefeats += 1;
                       result.finished.push({
+                        avatarId : data.avatarId2,
                         userName : data.userName2,
                         matchId : data.matchId,
                         myScore : data.score1,
@@ -484,23 +544,24 @@ app.get("/update/match/score", function(req,res){
                     }
                   });
                 }
+
                 //Mac BITTI BEKLENEN MACI SIL
-                User.update({'googleUserId' : data.userId2}, {$pull: {'waiting': {matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
+                User.update({'googleUserId' : data.userId2}, {$pull: {'waiting': {matchId : data._id}}}, function(err, data){
                   if(err){
                     console.log(err);
                   }
                   if(data){
-                    console.log("silindi");
+                    console.log("waiting silindi");
                   }
                 });
 
                 //gonderilen maci sil
-                User.update({'googleUserId' : data.userId1}, {$pull: {'sentMatches': {userId : data.userId1, userName : data.userName1, matchId : data.matchId, matchType : data.matchType}}}, function(err, data){
+                User.update({'googleUserId' : data.userId1}, {$pull: {'sentMatches': {matchId : data._id}}}, function(err, data){
                   if(err){
                     console.log(err);
                   }
                   if(data){
-                    console.log("silindi");
+                    console.log("sent matches silindi");
                   }
                 });
               }else{
@@ -510,7 +571,7 @@ app.get("/update/match/score", function(req,res){
                     console.log(err);
                   }
                   if(result){
-                    result.waiting.push({googleUserId : data.userId1, userName : data.userName1, matchId : data._id, matchType : data.matchType});
+                    result.waiting.push({avatarId: data.avatarId1, googleUserId : data.userId1, userName : data.userName1, matchId : data._id, matchType : data.matchType});
                     result.save();
                   }
                 });
@@ -522,6 +583,7 @@ app.get("/update/match/score", function(req,res){
                   if(result){
                     console.log("sent matches olusturuldu");
                     result.sentMatches.push({
+                      avatarId : data.avatarId2,
                       googleUserId : data.userId2,
                       userName : data.userName2,
                       myScore : data.score1,
@@ -535,7 +597,7 @@ app.get("/update/match/score", function(req,res){
 
             }
           });
-          res.json({status: 200, messages: 'ok', match: data})
+          res.json({status: 200, messages: 'ok'})
         }
       })
     }
@@ -615,6 +677,7 @@ app.get("/addUserToQueue", function(req, res){
 //TIME MODE HIGH SCORE UPDATE
 app.get("/update/score/timeMode", function(req, res){
   var data = {
+    googleUserId : req.query.userId,
     userName : req.query.userName,
     timeMode : req.query.timeHighScore
   }
@@ -622,7 +685,7 @@ app.get("/update/score/timeMode", function(req, res){
     googleUserId : req.query.userId
   }
 
-  Score.findOne({'userName': req.query.userName}, function(err,exists){
+  Score.findOne({googleUserId : req.query.userId}, function(err,exists){
     if(err){
       console.log(err);
     }
@@ -631,6 +694,8 @@ app.get("/update/score/timeMode", function(req, res){
       var dbScore = exists.timeMode;
       if(parseInt(dbScore) < parseInt(req.query.timeHighScore)){
         exists.timeMode = req.query.timeHighScore;
+        exists.userId = req.query.userId;
+        exists.userName = req.query.userName;
         exists.save();
         res.json({status: 200, messages:'ok'});
        }else{
@@ -656,6 +721,7 @@ app.get("/update/score/timeMode", function(req, res){
 //CLASSIC MODE HIGH SCORE UPDATE
 app.get("/update/score/classicMode", function(req, res){
   var data = {
+    googleUserId : req.query.userId,
     userName : req.query.userName,
     classicMode : req.query.classicHighScore
   }
@@ -663,7 +729,7 @@ app.get("/update/score/classicMode", function(req, res){
     googleUserId : req.query.userId,
   }
 
-  Score.findOne({'userName': req.query.userName}, function(err,exists){
+  Score.findOne({googleUserId : req.query.userId}, function(err,exists){
     if(err){
       console.log(err);
     }
@@ -672,11 +738,14 @@ app.get("/update/score/classicMode", function(req, res){
       var dbScore = exists.classicMode;
       if(parseInt(dbScore) < parseInt(req.query.classicHighScore)){
         exists.classicMode = req.query.classicHighScore;
-        res.json({status: 200, messages: 'ok', data: data});
+        exists.userId = req.query.userId;
+        exists.userName = req.query.userName;
+        exists.save();
+        res.json({status: 200, messages: 'Score guncellendi'});
       }
       else{
         console.log("LocalScore < dbScore Failed to update.!");
-        res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
+        res.json({status: 200, messages: "LocalScore < dbScore Failed to update.!"});
       }    
     }
     else{
@@ -686,7 +755,7 @@ app.get("/update/score/classicMode", function(req, res){
           console.log(err);
         }
         if(score){
-          res.json({status: 200, messages:'ok', score:score});
+          res.json({status: 200, messages:'Score olusturuldu'});
         }
       });
     }
