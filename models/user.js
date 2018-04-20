@@ -14,6 +14,7 @@ var userSchema = new mongoose.Schema({
   //score array
   //match array
   friends: [{
+    accepted : {type : Boolean, default : false},
     avatarId : Number,
     userId : String, 
     userName : String}],    

@@ -2,12 +2,12 @@ var express = require("express");
 var app = express();
 var bodyParser = require("body-parser");
 var mongoose = require("mongoose").set('debug', true);
-var shortid = require('shortid');
 var User = require("./models/user");
 var Score = require("./models/score");
 var Match = require("./models/match");
 var Queue = require("./models/queue");
 var Feedback = require("./models/feedback");
+var moment = require('moment');
 
 
 
@@ -17,6 +17,24 @@ mongoose.connect('mongodb://m.aslann35:006f9c60@ds233748.mlab.com:33748/mydb')
     .catch(()=> { console.log(`Error Connecting to the Mongodb Database`)});
 
 app.use(bodyParser.urlencoded({extended:true}));
+
+
+function intervalFunc(){
+ Match.find({}, function(err, matches){
+  matches.forEach(function(match){
+    console.log(moment.parseZone(match.updatedAt).zone(3).format("YYYYMMDD HH:mm") , match.updatedAt, moment());
+  });
+ });
+}
+//setInterval(intervalFunc, 1000);
+
+
+
+
+
+
+
+
 
 //Home page
 app.get("/", function(req, res) {
@@ -162,19 +180,60 @@ app.get("/getFriends", function(req, res){
       result.friends.forEach(function(friend){
         User.findOne({googleUserId : friend.userId}, function(err, data){
           if(data){
-            friendsArray.push({
-              userId : friend.userId,
-              userName : data.userName,
-              avatarId : data.avatarId
-            });
-            arraySize--;
+            if(friend.accepted == true){
+              console.log("true");
+              friendsArray.push({
+                userId : friend.userId,
+                userName : data.userName,
+                avatarId : data.avatarId
+              });
+              arraySize--;
+            }
+          }
+          if(arraySize == 0){
+            console.log(friendsArray);
+            if(friendsArray.length != 0)
+              res.json({status: 200, messages:'Get Friends', friends: friendsArray});
+            if(friendsArray.length == 0)
+              res.json({status: 200, messages:'Hic arkadasi yok'});
+          }
+        });
+      });
+    }
+  });
+});
+
+//GET FRIENDS REQUEST
+app.get("/getFriendsRequest", function(req, res){
+  User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
+    if(err){
+      console.log(err);
+    }
+    if(result){
+      var friendsArray = [];
+      var arraySize = result.friends.length;
+
+      result.friends.forEach(function(friend){
+        User.findOne({googleUserId : friend.userId}, function(err, data){
+          if(data){
+            if(friend.accepted == false){
+              console.log("false");
+              friendsArray.push({
+                userId : friend.userId,
+                userName : data.userName,
+                avatarId : data.avatarId
+              });
+              arraySize--;
+            }
             if(arraySize === 0){
               console.log(friendsArray);
-              res.json({status: 200, messages:'Get Friends', friends: friendsArray});
+              res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
             }
           }
         });
       });
+      res.json({status: 200, messages:'Bekleyen istek yok'});
+
     }
   });
 });
@@ -231,22 +290,87 @@ app.get("/getFinishedMatches", function(req, res){
 
 //ADD FRIEND
 app.get("/addFriend", function(req, res){
+  /*
+    //benim arkadaslarim arasina
+    User.findOne({'googleUserId' : req.query.userId, 'friends': {$elemMatch:{userId : req.query.friendUserId}}}, function(err, friend){
+      if(err){
+        console.log(err);
+      }
+      if(friend){
+        console.log("Friend found");
+        res.json({status:200, messages: 'ok', user:friend});
+      }else{
+        console.log("Friend not found");
+        User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
+          result.friends.push({avatarId : req.query.friendAvatarId, userName : req.query.friendUserName, userId : req.query.friendUserId});
+          result.save();
+          res.json({status : 200, messages: 'ok'});
+        });
+      }
+    });
+  */
   User.findOne({'googleUserId' : req.query.userId, 'friends': {$elemMatch:{userId : req.query.friendUserId}}}, function(err, friend){
     if(err){
       console.log(err);
     }
     if(friend){
       console.log("Friend found");
-      res.json({status:200, messages: 'ok', user:friend});
+      res.json({status:200, messages: 'Friend Found'});
     }else{
       console.log("Friend not found");
-      User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
-        result.friends.push({avatarId : req.query.avatarId, userName : req.query.friendUserName, userId : req.query.friendUserId});
-        result.save();
-        res.json({status : 200, messages: 'ok'});
+      //beni arkadas eklesin
+      User.findOne({'googleUserId' : req.query.friendUserId, 'friends': {$elemMatch:{userId : req.query.userId}}}, function(err, result){
+        if(err){
+          console.log(err);
+        }
+        if(result){
+          console.log("Istek mevcut");
+          res.json({status:200, messages: 'Istek mevcut'});
+        }else{
+          console.log("Istek mevcut degil");
+          User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
+            data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
+            data.save();
+            res.json({status : 200, messages: 'Add friend request'});
+          });
+        }
       });
     }
   });
+});
+
+app.get("/friendRequestStatus", function(req, res){
+  if(req.query.requestStatus == "true"){
+    //Bana ekle
+    User.findOne({'googleUserId' : req.query.userId}, function(err, result){
+      result.friends.forEach(function(friend){
+        if(friend.userId == req.query.friendUserId){
+          friend.accepted = "true";
+          result.save();
+        }
+      });
+    });
+
+    //Gonderene ekle
+    User.findOne({'googleUserId' : req.query.friendUserId, 'friends': {$elemMatch:{userId : req.query.userId}}}, function(err, data){
+      if(!data){
+        data.friends.push({avatarId: req.query.avatarId, userName : req.query.userName, userId : req.query.userId, accepted : "true"});
+        data.save();
+      }
+    });
+    res.json({status:200, messages:'Added Friend'});
+  }else{
+    //Bekleyen istegi sil
+    User.update({'googleUserId' : req.query.userId}, {$pull: {'friends': {userId : req.query.friendUserId}}}, function(err, data){
+      if(err){
+        console.log(err);
+      }
+      if(data){
+        console.log("silindi");
+        res.json({status: 200, messages: 'Delete Friend'});
+      }
+    });
+  }
 });
 
 //GLOBAL SEARCH USER
@@ -274,52 +398,61 @@ app.get("/searchFriend", function(req, res){
 
 //CREATE RANDOM MATCH
 app.get("/createMatch", function(req, res){
-  User.find({}, function(err, users) {
-    if(err){
-      console.log(err);
-    }
-    if(users){
-      var userMap = [];
-
-      users.forEach(function(user) {
-        if(user.googleUserId !== req.query.userId){
-          userMap.push(user._id);
+  User.findOne({'googleUserId' : req.query.userId}, function(err, data){
+    if(data.coin >= 1000){
+      data.coin -= 1000;
+      data.save();
+      User.find({}, function(err, users) {
+        if(err){
+          console.log(err);
         }
+        if(users){
+          var userMap = [];
+    
+          users.forEach(function(user) {
+            if(user.googleUserId !== req.query.userId){
+              userMap.push(user._id);
+            }
+          });
+          //Random bir user sec
+          var random = Math.floor(Math.random() * userMap.length);
+          console.log(userMap[random]);
+    
+          User.findOne({_id : userMap[random]}, function(err, result){
+            if(req.query.userId !== result.googleUserId){
+                var userName1 = req.query.userName; //Meydan okuyan username
+                var userName2 = result.userName;  //Meydan okunan username
+                var userId1 = req.query.userId; //Meydan okuyan userId
+                var userId2 = result.googleUserId;  //Meydan okunan userId
+                var avatarId1 = req.query.avatarId;
+                var avatarId2 = result.avatarId;
+    
+                Match.create({
+                  userName1 : userName1,
+                  userName2 : userName2,
+                  userId1 : userId1,
+                  userId2 : userId2,
+                  score1 : -1,
+                  score2 : -1,
+                  matchType : req.query.matchType,
+                  avatarId1 : avatarId1,
+                  avatarId2 : avatarId2
+                }, function(err, data){
+                  if(err)
+                    console.log(err);
+                  else{
+                    console.log("Match olusturuldu...!");
+                    res.json({status: 200, messages: 'ok', matchId:data._id});
+                  }
+                });
+            }
+        });
+      }
       });
-      //Random bir user sec
-      var random = Math.floor(Math.random() * userMap.length);
-      console.log(userMap[random]);
-
-      User.findOne({_id : userMap[random]}, function(err, result){
-        if(req.query.userId !== result.googleUserId){
-            var userName1 = req.query.userName; //Meydan okuyan username
-            var userName2 = result.userName;  //Meydan okunan username
-            var userId1 = req.query.userId; //Meydan okuyan userId
-            var userId2 = result.googleUserId;  //Meydan okunan userId
-            var avatarId1 = req.query.avatarId;
-            var avatarId2 = result.avatarId;
-
-            Match.create({
-              userName1 : userName1,
-              userName2 : userName2,
-              userId1 : userId1,
-              userId2 : userId2,
-              score1 : -1,
-              score2 : -1,
-              matchType : req.query.matchType,
-              avatarId1 : avatarId1,
-              avatarId2 : avatarId2
-            }, function(err, data){
-              if(err)
-                console.log(err);
-              else{
-                console.log("Match olusturuldu...!");
-                res.json({status: 200, messages: 'ok', matchId:data._id});
-              }
-            });
-        }
-    });
-  }
+    }
+    else{
+      res.send({status:500, messages: 'Yeterli coin yok'});
+    }
   });
 });
 
@@ -332,22 +465,30 @@ app.get("/createFriendMatch", function(req, res){
   var avatarId1 = req.query.avatarId;
   var avatarId2 = req.query.friendAvatarId;
 
-  Match.create({
-    userName1 : userName1,
-    userName2 : userName2,
-    userId1 : userId1,
-    userId2 : userId2,
-    score1 : -1,
-    score2 : -1,
-    matchType : req.query.matchType,
-    avatarId1 : avatarId1,
-    avatarId2 : avatarId2
-  }, function(err, data){
-    if(err)
-      console.log(err);
-    else{
-      console.log("Match olusturuldu...!");
-      res.json({status: 200, messages: 'ok', data:data});
+  User.findOne({'googleUserId' : req.query.userId}, function(err, user){
+    if(user.coin >= 1000){
+      user.coin -= 1000;
+      user.save();
+      Match.create({
+        userName1 : userName1,
+        userName2 : userName2,
+        userId1 : userId1,
+        userId2 : userId2,
+        score1 : -1,
+        score2 : -1,
+        matchType : req.query.matchType,
+        avatarId1 : avatarId1,
+        avatarId2 : avatarId2
+      }, function(err, data){
+        if(err)
+          console.log(err);
+        else{
+          console.log("Match olusturuldu...!");
+          res.json({status: 200, messages: 'ok', data:data});
+        }
+      });
+    }else{
+      res.json({status: 500, messages: 'Yetersiz coin'});
     }
   });
 });
@@ -358,9 +499,17 @@ app.get("/deleteWaitingMatch", function(req, res){
       console.log(err);
     }
     if(data){
-      console.log("silindi");
-      //matchId sinden useId1 bul sonra useri ara puani ver
-      res.json({status: 200, messages: 'Delete waiting match'});
+      Match.findById(req.query.matchId, function(err, match){
+        if(match){
+          User.findOne({'googleUserId' : match.userId1}, function(err, data){
+            data.coin += 1000;
+            data.save();
+            console.log("silindi");
+            //matchId sinden useId1 bul sonra useri ara puani ver
+            res.json({status: 200, messages: 'Delete waiting match'});
+          });
+        }
+      });
     }
   });
 });
@@ -420,7 +569,7 @@ app.get("/update/match/score", function(req,res){
                       console.log(err)
                     }else{
                       //Meydan okuyana coin ver Finished ekle
-                      result.coin += 4000;
+                      result.coin += 2000;
                       result.numberOfWins +=1;
                       result.finished.push({
                         avatarId : data.avatarId2,
@@ -457,7 +606,7 @@ app.get("/update/match/score", function(req,res){
                     }
                   });
                 }
-                
+
                 //beraberlik
                 if(data.score1 == data.score2){
                   User.findOne({googleUserId : data.userId2}, function(err, result){
@@ -510,7 +659,7 @@ app.get("/update/match/score", function(req,res){
                       console.log(err)
                     }else{
                       //Meydan okunana coin ver Finished ekle
-                      result.coin += 4000;
+                      result.coin += 2000;
                       result.numberOfWins += 1;
                           result.finished.push({
                             avatarId : data.avatarId1,
