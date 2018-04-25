@@ -8,8 +8,16 @@ var Match = require("./models/match");
 var Queue = require("./models/queue");
 var Feedback = require("./models/feedback");
 var moment = require('moment');
+var async = require('async')
+const jwt = require('jsonwebtoken');
 
 
+// Config
+const config = require('./config');
+app.set('api_secret_key', config.api_secret_key);
+
+// Middleware
+const verifyToken = require('./middleware/verify-token');
 
 //mongoose.connect("mongodb://localhost/blockcity", {useMongoClient: true});
 mongoose.connect('mongodb://m.aslann35:006f9c60@ds233748.mlab.com:33748/mydb')
@@ -18,11 +26,63 @@ mongoose.connect('mongodb://m.aslann35:006f9c60@ds233748.mlab.com:33748/mydb')
 
 app.use(bodyParser.urlencoded({extended:true}));
 
+app.use('/api', verifyToken);
 
 function intervalFunc(){
  Match.find({}, function(err, matches){
   matches.forEach(function(match){
-    console.log(moment.parseZone(match.updatedAt).zone(3).format("YYYYMMDD HH:mm") , match.updatedAt, moment());
+
+    //console.log(moment.parseZone(match.updatedAt).format("YYYYMMDD HH:mm") , match.updatedAt, moment().zone(3).format("YYYYMMDD HH:mm"), moment().add(1,'days').format("YYYYMMDDHHmm"));
+    if(match.matchStatus == false){
+      var dateNow = moment().format("YYYYMMDDHHmm");
+      var oneDayAfter = moment.parseZone(match.updatedAt).add(1,'minutes').format("YYYYMMDDHHmm");
+  
+      if(oneDayAfter <= dateNow){
+        var matchId = match._id;
+        var meydanOkuyanId = match.userId1;
+        var meydanOkunanId = match.userId2;
+        var meydanOkuyanUserName = match.userName1;
+        var meydanOkunanUserName = match.userName2;
+        var meydanOkuyanScore = match.score1;
+        var meydanOkunanScore = match.score2;
+  
+        if(meydanOkunanScore == -1 && meydanOkuyanScore != -1){
+          //meydan okuyan sent maci sil
+          //meydan okuyana parasini iade et
+          User.findOne({'googleUserId' : meydanOkuyanId}, function(err, user){
+            console.log(dateNow, oneDayAfter);
+            console.log(match.matchStatus, matchId, meydanOkuyanUserName, meydanOkunanUserName);
+            user.coin += 1000;
+            user.save();
+           
+             //gonderilen maci sil
+             User.update({'googleUserId' : meydanOkuyanId}, {$pull: {'sentMatches': {matchId : matchId}}}, function(err, data){
+              if(err){
+                console.log(err);
+              }
+              if(data){
+                match.matchStatus = true;
+                match.save();
+                console.log("sent matches silindi");
+              }
+            });
+          });
+          //meydan okunan waiting maci sil 
+          User.update({'googleUserId' : meydanOkunanId}, {$pull: {'waiting': {matchId : matchId}}}, function(err, data){
+            if(err){
+              console.log(err);
+            }
+            if(data){
+              console.log("waiting silindi");
+            }
+          });
+        }
+        if(meydanOkuyanScore == -1){
+          match.matchStatus =true;
+          match.save();
+        }
+      }
+    }
   });
  });
 }
@@ -31,8 +91,30 @@ function intervalFunc(){
 
 
 
-
-
+app.post('/authenticate', (req, res) =>{
+  User.findOne({'googleUserId' : req.query.userId}, function(err, user){
+    if(err){
+      console.log(err);
+    }
+    if(!user){
+      res.json({
+        status: false,
+        messages: 'Authentication failed, user not found.'
+      })
+    }else{
+      const payload = {
+        googleUserId: req.query.userId
+      };
+      const token = jwt.sign(payload, req.app.get('api_secret_key'),{
+        expiresIn : 720 //12 saat
+      });
+      res.json({
+        status: true,
+        token
+      });
+    }
+  });
+});
 
 
 
@@ -123,6 +205,22 @@ app.get("/update/avatarId", function(req, res){
 });
 
 
+
+app.get("/login", function(req, res){
+  User.findOne({'googleUserId' : req.query.userId}, function(err, user){
+    if(err){
+      console.log(err);
+    }
+    if(user){
+      console.log("User Mevcut");
+      res.json({status: 200, messages:'User Exist', exists : user.userName});
+    }else{
+      console.log("User Mevcut Degil");
+      res.json({status: 200, messages: 'User Not Exist'});
+    }
+  })
+});
+
 //REGISTER USER
 app.get("/register", function(req, res){
     var googleUserId =  req.query.googleUserId;
@@ -170,72 +268,104 @@ app.get("/register", function(req, res){
 
 //GET FRIENDS
 app.get("/getFriends", function(req, res){
-  User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
-    if(err){
-      console.log(err);
-    }
-    if(result){
-      var friendsArray = [];
-      var arraySize = result.friends.length;
-      result.friends.forEach(function(friend){
-        User.findOne({googleUserId : friend.userId}, function(err, data){
-          if(data){
-            if(friend.accepted == true){
-              console.log("true");
-              friendsArray.push({
-                userId : friend.userId,
-                userName : data.userName,
-                avatarId : data.avatarId
-              });
-              arraySize--;
-            }
-          }
-          if(arraySize == 0){
-            console.log(friendsArray);
-            if(friendsArray.length != 0)
+  var friendsArray = [];
+  var friendsCount = 0;
+  User.findOne({googleUserId: req.query.userId})
+  .then((data) => {
+    console.log("1");
+    var arraySize = data.friends.length;
+    data.friends.forEach(function(friend){
+      if(friend.accepted == true){
+        friendsCount++;
+      }
+    });
+
+    data.friends.forEach(function(friend){
+      arraySize--;
+      console.log(friend);
+        User.findOne({googleUserId: friend.userId})
+        .then((data) =>{
+          console.log("user find");
+          if(friend.accepted == true){
+          friendsArray.push({
+            userId : friend.userId,
+            userName : data.userName,
+            avatarId : data.avatarId
+          });
+        }
+        })
+        .then((data) =>{
+          console.log(arraySize, "arr");
+
+          console.log(friendsArray.length, "ffri");
+          console.log(friendsCount)
+
+            if(friendsArray.length == friendsCount){
+              console.log("2");
+              console.log(friendsArray.length, "11");
+              console.log(friendsCount , "111");
               res.json({status: 200, messages:'Get Friends', friends: friendsArray});
-            if(friendsArray.length == 0)
-              res.json({status: 200, messages:'Hic arkadasi yok'});
-          }
-        });
+            }
+
+        })
+        .catch((err)=>{
+          console.log(err);
       });
-    }
-  });
+    });
+  })
+  .catch((err)=>{
+    console.log(err);
+});
 });
 
 //GET FRIENDS REQUEST
 app.get("/getFriendsRequest", function(req, res){
-  User.findOne({googleUserId: req.query.userId}).populate('friends').exec(function(err, result){
-    if(err){
-      console.log(err);
-    }
-    if(result){
-      var friendsArray = [];
-      var arraySize = result.friends.length;
+  var friendsArray = [];
+  var friendsCount = 0;
+  User.findOne({googleUserId: req.query.userId})
+  .then((data) => {
+    console.log("1");
+    var arraySize = data.friends.length;
+    data.friends.forEach(function(friend){
+      if(friend.accepted == false){
+        friendsCount++;
+      }
+    });
 
-      result.friends.forEach(function(friend){
-        User.findOne({googleUserId : friend.userId}, function(err, data){
-          if(data){
-            if(friend.accepted == false){
-              console.log("false");
-              friendsArray.push({
-                userId : friend.userId,
-                userName : data.userName,
-                avatarId : data.avatarId
-              });
-              arraySize--;
-            }
-            if(arraySize === 0){
-              console.log(friendsArray);
+    data.friends.forEach(function(friend){
+      arraySize--;
+      console.log(friend);
+        User.findOne({googleUserId: friend.userId})
+        .then((data) =>{
+          console.log("user find");
+          if(friend.accepted == false){
+          friendsArray.push({
+            userId : friend.userId,
+            userName : data.userName,
+            avatarId : data.avatarId
+          });
+        }
+        })
+        .then((data) =>{
+          console.log(arraySize, "arr");
+
+          console.log(friendsArray.length, "ffri");
+          console.log(friendsCount, "count");
+            if(friendsArray.length == friendsCount){
+              console.log("2");
+              console.log(friendsArray.length, "11");
+              console.log(friendsCount , "111");
               res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
             }
-          }
-        });
+        })
+        .catch((err)=>{
+          console.log(err);
       });
-      res.json({status: 200, messages:'Bekleyen istek yok'});
-
-    }
-  });
+    });
+  })
+  .catch((err)=>{
+    console.log(err);
+});
 });
 
 //GET WAITING MATCH
@@ -281,7 +411,6 @@ app.get("/getFinishedMatches", function(req, res){
             tempArray.push(item);
           }
         });
-        console.log(tempArray);
         //ters cevirip gonder
       res.json({status: 200, messages:'ok', finishedMatches: last(tempArray, 20).reverse()});
     }
@@ -349,16 +478,15 @@ app.get("/friendRequestStatus", function(req, res){
           result.save();
         }
       });
-    });
-
-    //Gonderene ekle
-    User.findOne({'googleUserId' : req.query.friendUserId, 'friends': {$elemMatch:{userId : req.query.userId}}}, function(err, data){
-      if(!data){
+      //Gonderene ekle
+    User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
+      if(data){
         data.friends.push({avatarId: req.query.avatarId, userName : req.query.userName, userId : req.query.userId, accepted : "true"});
         data.save();
+        res.json({status:200, messages:'Added Friend'});
       }
     });
-    res.json({status:200, messages:'Added Friend'});
+    });
   }else{
     //Bekleyen istegi sil
     User.update({'googleUserId' : req.query.userId}, {$pull: {'friends': {userId : req.query.friendUserId}}}, function(err, data){
@@ -713,6 +841,9 @@ app.get("/update/match/score", function(req,res){
                     console.log("sent matches silindi");
                   }
                 });
+
+                data.matchStatus = true;
+                data.save();
               }else{
                 //meydan okuyan mac bitti rakibin waiting ekle
                 User.findOne({googleUserId: data.userId2}).populate('waiting').exec(function(err, result){

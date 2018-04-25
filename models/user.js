@@ -47,7 +47,7 @@ var userSchema = new mongoose.Schema({
     myScore: Number, 
     matchType: String, 
     addTime : { type : Date, default: Date.now }}]
-});
+}, {timestamps : true});
 
 
 module.exports = mongoose.model("User", userSchema);
