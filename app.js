@@ -91,7 +91,18 @@ function intervalFunc(){
 
 
 
-app.post('/authenticate', (req, res) =>{
+app.get('/authenticate', (req, res) =>{
+  const payload = {
+    googleUserId: req.query.userId
+  };
+  const token = jwt.sign(payload, req.app.get('api_secret_key'),{
+    expiresIn : 720 //12 saat
+  });
+  res.json({
+    status: 200,
+    token
+  });
+  /*
   User.findOne({'googleUserId' : req.query.userId}, function(err, user){
     if(err){
       console.log(err);
@@ -109,11 +120,12 @@ app.post('/authenticate', (req, res) =>{
         expiresIn : 720 //12 saat
       });
       res.json({
-        status: true,
+        status: 200,
         token
       });
     }
   });
+  */
 });
 
 
@@ -124,7 +136,7 @@ app.get("/", function(req, res) {
 });
 
 //FEEDBACK
-app.get("/feedback", function(req, res){
+app.get("/api/feedback", function(req, res){
   var userId = req.query.userId;
   var userName = req.query.userName;
   var messages = req.query.messages;
@@ -144,7 +156,7 @@ app.get("/feedback", function(req, res){
 });
 
 //UPDATE USER NAME
-app.get("/update/username", function(req, res) {
+app.get("/api/update/username", function(req, res) {
   var data = {
     userName: req.query.userName,
     changeUserName:true
@@ -164,7 +176,7 @@ app.get("/update/username", function(req, res) {
 });
 
 //UPDATE COIN
-app.get("/update/coin", function(req, res){
+app.get("/api/update/coin", function(req, res){
   var data = {
     coin : req.query.coin
   }
@@ -185,7 +197,7 @@ app.get("/update/coin", function(req, res){
 
 
 //UPDATE AVATARID
-app.get("/update/avatarId", function(req, res){
+app.get("/api/update/avatarId", function(req, res){
   var data = {
     avatarId : req.query.avatarId
   }
@@ -206,7 +218,7 @@ app.get("/update/avatarId", function(req, res){
 
 
 
-app.get("/login", function(req, res){
+app.get("/api/login", function(req, res){
   User.findOne({'googleUserId' : req.query.userId}, function(err, user){
     if(err){
       console.log(err);
@@ -222,7 +234,7 @@ app.get("/login", function(req, res){
 });
 
 //REGISTER USER
-app.get("/register", function(req, res){
+app.get("/api/register", function(req, res){
     var googleUserId =  req.query.googleUserId;
     var googleUserName = req.query.googleUserName;
     var googleEmail = req.query.googleEmail;
@@ -267,12 +279,14 @@ app.get("/register", function(req, res){
 });
 
 //GET FRIENDS
-app.get("/getFriends", function(req, res){
+app.get("/api/getFriends", function(req, res){
   var friendsArray = [];
   var friendsCount = 0;
   User.findOne({googleUserId: req.query.userId})
   .then((data) => {
-    console.log("1");
+    if(data.friends.count == 0){
+      res.json({status: 200, messages: 'Hic arkadasi yok'});
+    }
     var arraySize = data.friends.length;
     data.friends.forEach(function(friend){
       if(friend.accepted == true){
@@ -319,12 +333,15 @@ app.get("/getFriends", function(req, res){
 });
 
 //GET FRIENDS REQUEST
-app.get("/getFriendsRequest", function(req, res){
+app.get("/api/getFriendsRequest", function(req, res){
   var friendsArray = [];
   var friendsCount = 0;
   User.findOne({googleUserId: req.query.userId})
   .then((data) => {
     console.log("1");
+    if(data.friends.count == 0){
+      res.json({status: 200, messages: 'Hic istegi yok'});
+    }
     var arraySize = data.friends.length;
     data.friends.forEach(function(friend){
       if(friend.accepted == false){
@@ -369,7 +386,7 @@ app.get("/getFriendsRequest", function(req, res){
 });
 
 //GET WAITING MATCH
-app.get("/getWaitingMatches", function(req, res){
+app.get("/api/getWaitingMatches", function(req, res){
   User.findOne({googleUserId: req.query.userId}, function(err, result){
     if(err){
       console.log(err);
@@ -390,7 +407,7 @@ app.get("/getWaitingMatches", function(req, res){
 });
 
 //GET FINISHED MATCH
-app.get("/getFinishedMatches", function(req, res){
+app.get("/api/getFinishedMatches", function(req, res){
   User.findOne({googleUserId: req.query.userId}, function(err, result){
     if(err){
       console.log(err);
@@ -418,7 +435,7 @@ app.get("/getFinishedMatches", function(req, res){
 });
 
 //ADD FRIEND
-app.get("/addFriend", function(req, res){
+app.get("/api/addFriend", function(req, res){
   /*
     //benim arkadaslarim arasina
     User.findOne({'googleUserId' : req.query.userId, 'friends': {$elemMatch:{userId : req.query.friendUserId}}}, function(err, friend){
@@ -468,7 +485,7 @@ app.get("/addFriend", function(req, res){
   });
 });
 
-app.get("/friendRequestStatus", function(req, res){
+app.get("/api/friendRequestStatus", function(req, res){
   if(req.query.requestStatus == "true"){
     //Bana ekle
     User.findOne({'googleUserId' : req.query.userId}, function(err, result){
@@ -502,7 +519,7 @@ app.get("/friendRequestStatus", function(req, res){
 });
 
 //GLOBAL SEARCH USER
-app.get("/searchUser", function(req, res){
+app.get("/api/searchUser", function(req, res){
   User.findOne({userName : req.query.userName}, function(err, data){
     if(err)
       console.log(err);
@@ -512,7 +529,7 @@ app.get("/searchUser", function(req, res){
 });
 
 //SEARCH FRIEND
-app.get("/searchFriend", function(req, res){
+app.get("/api/searchFriend", function(req, res){
   User.findOne({'userName' : req.query.userName, 'friends': {$elemMatch:{userName : req.query.friendUserName}}}, function(err, friend){
     if(friend){
       console.log("Friend found");
@@ -525,7 +542,7 @@ app.get("/searchFriend", function(req, res){
 });
 
 //CREATE RANDOM MATCH
-app.get("/createMatch", function(req, res){
+app.get("/api/createMatch", function(req, res){
   User.findOne({'googleUserId' : req.query.userId}, function(err, data){
     if(data.coin >= 1000){
       data.coin -= 1000;
@@ -585,7 +602,7 @@ app.get("/createMatch", function(req, res){
 });
 
 //CREATE FRIEND MATCH
-app.get("/createFriendMatch", function(req, res){
+app.get("/api/createFriendMatch", function(req, res){
   var userName1 = req.query.userName; //Meydan okuyan username
   var userName2 = req.query.friendUserName;  //Meydan okunan username
   var userId1 = req.query.userId; //Meydan okuyan userId
@@ -621,7 +638,7 @@ app.get("/createFriendMatch", function(req, res){
   });
 });
 
-app.get("/deleteWaitingMatch", function(req, res){
+app.get("/api/deleteWaitingMatch", function(req, res){
   User.update({'googleUserId' : req.query.userId}, {$pull: {'waiting': {matchId : req.query.matchId}}}, function(err, data){
     if(err){
       console.log(err);
@@ -643,7 +660,7 @@ app.get("/deleteWaitingMatch", function(req, res){
 });
 
 //UPDATE MATCH SCORE
-app.get("/update/match/score", function(req,res){
+app.get("/api/update/match/score", function(req,res){
   Match.findOne({
     '_id' : req.query.matchId
   },function(err,data){
@@ -885,7 +902,7 @@ app.get("/update/match/score", function(req,res){
 });
 
 //UPDATE MATCH STATUS
-app.get("/update/match/status", function(req, res){
+app.get("/api/update/match/status", function(req, res){
   //meydan okuyan kisinin kullanici adini ve matchId al
   Match.findOneAndUpdate({matchId : req.query.matchId, userName1 : req.query.userName},
     {matchStatu : req.query.matchStatu}, {}, function(err, data){
@@ -918,7 +935,7 @@ app.get("/update/match/status", function(req, res){
 });
 
 //ADD USER TO QUEUE
-app.get("/addUserToQueue", function(req, res){
+app.get("/api/addUserToQueue", function(req, res){
 
   var userName = req.query.userName;
   Queue.findOne({'userName' : userName}, function(err, exists){
@@ -955,7 +972,7 @@ app.get("/addUserToQueue", function(req, res){
 
 
 //TIME MODE HIGH SCORE UPDATE
-app.get("/update/score/timeMode", function(req, res){
+app.get("/api/update/score/timeMode", function(req, res){
   var data = {
     googleUserId : req.query.userId,
     userName : req.query.userName,
@@ -999,7 +1016,7 @@ app.get("/update/score/timeMode", function(req, res){
 
 
 //CLASSIC MODE HIGH SCORE UPDATE
-app.get("/update/score/classicMode", function(req, res){
+app.get("/api/update/score/classicMode", function(req, res){
   var data = {
     googleUserId : req.query.userId,
     userName : req.query.userName,
@@ -1044,7 +1061,7 @@ app.get("/update/score/classicMode", function(req, res){
 
 
 //SHOW USERS
-app.get("/users", function(req, res){
+app.get("/api/users", function(req, res){
       User.find({}, function(err, usersDB){
         if (err) {
           console.log(err);
@@ -1057,7 +1074,7 @@ app.get("/users", function(req, res){
 });
 
 //SHOW SCORES
-app.get("/scores", function(req, res){
+app.get("/api/scores", function(req, res){
   Score.find({}, function(err, scoresDB){
     if (err) {
       console.log(err);
@@ -1071,7 +1088,7 @@ app.get("/scores", function(req, res){
 });
 
 //SHOW QUEUE
-app.get("/queues", function(req, res){
+app.get("/api/queues", function(req, res){
   Queue.find({}, function(err, queuesDB){
     if (err) {
       console.log(err);
@@ -1085,7 +1102,7 @@ app.get("/queues", function(req, res){
 });
 
 //GET COIN
-app.get("/getUserData", function(req, res){
+app.get("/api/getUserData", function(req, res){
 
   User.findOne({googleUserId :req.query.userId}, function(err, user){
     if(err){
@@ -1098,7 +1115,7 @@ app.get("/getUserData", function(req, res){
 });
 
 //GET TIME MODE LEADER BOARD
-app.get("/getTimeModeLeaderboard", function(req, res){
+app.get("/api/getTimeModeLeaderboard", function(req, res){
   Score.find({}).sort({timeMode: 'desc'}).limit(10).exec(function(error, leaderboard){
     if(error){
       console.log(error);
@@ -1111,7 +1128,7 @@ app.get("/getTimeModeLeaderboard", function(req, res){
 });
 
 //GET CLASSIC MODE LEADERBOARD
-app.get("/getClassicModeLeaderboard", function(req, res){
+app.get("/api/getClassicModeLeaderboard", function(req, res){
   Score.find({}).sort({classicMode: 'desc'}).limit(10).exec(function(error, leaderboard){
     if(error){
       console.log(error);
