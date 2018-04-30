@@ -51,3 +51,8 @@ var userSchema = new mongoose.Schema({
 
 
 module.exports = mongoose.model("User", userSchema);
+/*id : {
+  type: mongoose.Schema.Types.ObjectId,
+  ref : "User"
+}
+*/

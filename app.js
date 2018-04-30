@@ -10,7 +10,8 @@ var Feedback = require("./models/feedback");
 var moment = require('moment');
 var async = require('async')
 const jwt = require('jsonwebtoken');
-
+var asyncLoop = require('node-async-loop');
+ 
 
 // Config
 const config = require('./config');
@@ -282,107 +283,100 @@ app.get("/api/register", function(req, res){
 app.get("/api/getFriends", function(req, res){
   var friendsArray = [];
   var friendsCount = 0;
-  User.findOne({googleUserId: req.query.userId})
-  .then((data) => {
-    if(data.friends.count == 0){
-      res.json({status: 200, messages: 'Hic arkadasi yok'});
+
+  User.findOne({'googleUserId' : req.query.userId}, function(err, data){
+    if(err){
+      console.log(err);
     }
-    var arraySize = data.friends.length;
-    data.friends.forEach(function(friend){
-      if(friend.accepted == true){
+    var friendsCount = 0;
+    data.friends.forEach(function(k){
+      if(k.accepted == true){
         friendsCount++;
       }
     });
 
-    data.friends.forEach(function(friend){
-      arraySize--;
-      console.log(friend);
-        User.findOne({googleUserId: friend.userId})
-        .then((data) =>{
-          console.log("user find");
-          if(friend.accepted == true){
-          friendsArray.push({
-            userId : friend.userId,
-            userName : data.userName,
-            avatarId : data.avatarId
+    if(friendsCount == 0){
+      console.log("Arkadasi yok");
+      res.json({status:200, messages:'Hic arkadasi yok'});
+    }
+
+    if(friendsCount != 0){
+      var friendsArray = [];
+      asyncLoop(data.friends, function(item, next){
+        if(item.accepted == true){
+          User.findOne({'googleUserId' : item.userId}, function(err, user){
+            if(user){
+              friendsArray.push({
+                userId : user.googleUserId,
+                avatarId : user.avatarId,
+                userName : user.userName
+              });
+              next();
+            }
           });
         }
-        })
-        .then((data) =>{
-          console.log(arraySize, "arr");
+        else{
+          next();
+        }
+      }, function(){
+        console.log(friendsArray);
+        console.log('finished');
+        res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
+      }
 
-          console.log(friendsArray.length, "ffri");
-          console.log(friendsCount)
-
-            if(friendsArray.length == friendsCount){
-              console.log("2");
-              console.log(friendsArray.length, "11");
-              console.log(friendsCount , "111");
-              res.json({status: 200, messages:'Get Friends', friends: friendsArray});
-            }
-
-        })
-        .catch((err)=>{
-          console.log(err);
-      });
-    });
+  );
+}
   })
-  .catch((err)=>{
-    console.log(err);
-});
 });
 
 //GET FRIENDS REQUEST
 app.get("/api/getFriendsRequest", function(req, res){
   var friendsArray = [];
   var friendsCount = 0;
-  User.findOne({googleUserId: req.query.userId})
-  .then((data) => {
-    console.log("1");
-    if(data.friends.count == 0){
-      res.json({status: 200, messages: 'Hic istegi yok'});
+
+  User.findOne({'googleUserId' : req.query.userId}, function(err, data){
+    if(err){
+      console.log(err);
     }
-    var arraySize = data.friends.length;
-    data.friends.forEach(function(friend){
-      if(friend.accepted == false){
+    var friendsCount = 0;
+    data.friends.forEach(function(k){
+      if(k.accepted == false){
         friendsCount++;
       }
     });
 
-    data.friends.forEach(function(friend){
-      arraySize--;
-      console.log(friend);
-        User.findOne({googleUserId: friend.userId})
-        .then((data) =>{
-          console.log("user find");
-          if(friend.accepted == false){
-          friendsArray.push({
-            userId : friend.userId,
-            userName : data.userName,
-            avatarId : data.avatarId
+    if(friendsCount == 0){
+      console.log("Istek yok");
+      res.json({status:200, messages:'Hic istegi yok'});
+    }
+
+    if(friendsCount != 0){
+      var friendsArray = [];
+      asyncLoop(data.friends, function(item, next){
+        if(item.accepted == false){
+          User.findOne({'googleUserId' : item.userId}, function(err, user){
+            if(user){
+              friendsArray.push({
+                userId : user.googleUserId,
+                avatarId : user.avatarId,
+                userName : user.userName
+              });
+              next();
+            }
           });
         }
-        })
-        .then((data) =>{
-          console.log(arraySize, "arr");
+        else{
+          next();
+        }
+      }, function(){
+        console.log(friendsArray);
+        console.log('finished');
+        res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
+      }
 
-          console.log(friendsArray.length, "ffri");
-          console.log(friendsCount, "count");
-            if(friendsArray.length == friendsCount){
-              console.log("2");
-              console.log(friendsArray.length, "11");
-              console.log(friendsCount , "111");
-              res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
-            }
-        })
-        .catch((err)=>{
-          console.log(err);
-      });
-    });
+  );
+}
   })
-  .catch((err)=>{
-    console.log(err);
-});
 });
 
 //GET WAITING MATCH

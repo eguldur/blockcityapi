@@ -17,6 +17,7 @@
     "moment": "^2.22.1",
     "mongoose": "^5.0.4",
     "mongoose-find-one-or-create": "^0.2.0",
+    "node-async-loop": "^1.2.2",
     "nodemon": "^1.14.12",
     "shortid": "^2.2.8",
     "uuid": "^3.2.1"
