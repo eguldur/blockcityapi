@@ -581,7 +581,7 @@ app.get("/api/createMatch", function(req, res){
                     console.log(err);
                   else{
                     console.log("Match olusturuldu...!");
-                    res.json({status: 200, messages: 'ok', matchId:data._id});
+                    res.json({status: 200, messages: 'ok', matchId:data._id, avatarId:avatarId2});
                   }
                 });
             }
