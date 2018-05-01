@@ -518,7 +518,9 @@ app.get("/api/searchUser", function(req, res){
     if(err)
       console.log(err);
     if(data)
-      res.json({status: 200, messages: 'ok', exists: data.userName});
+      res.json({status: 200, messages: 'bulundu', userName: data.userName, userId: data.googleUserId, avatarId : data.avatarId, bulundu: "1"});
+    if(!data)
+      res.json({status:200, messages:'bulunamadi', bulundu: 2});
   });
 });
 
