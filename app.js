@@ -97,7 +97,7 @@ app.get('/authenticate', (req, res) =>{
     googleUserId: req.query.userId
   };
   const token = jwt.sign(payload, req.app.get('api_secret_key'),{
-    expiresIn : 720 //12 saat
+    expiresIn : 86400 //24 saat
   });
   res.json({
     status: 200,
@@ -380,22 +380,25 @@ app.get("/api/getFriendsRequest", function(req, res){
 });
 
 //GET WAITING MATCH
-app.get("/api/getWaitingMatches", function(req, res){
-  User.findOne({googleUserId: req.query.userId}, function(err, result){
+app.get("/api/getWaitingMatches", async  function(req, res){
+  User.findOne({googleUserId: req.query.userId}, async function(err, result){
     if(err){
       console.log(err);
     }
     if(result){
-      waiting = result.waiting.filter(function(item){
+      waiting = await result.waiting.filter(function(item){
         return (item.matchType == req.query.matchType);
       });
+      
+      sent = await result.sentMatches.filter(function(item){
+        return (item.matchType == req.query.matchType);
+      });
+      console.log(sent);
+       sent.reverse();
+       waiting.reverse();
+      console.log(sent);
       console.log(waiting.reverse());
-
-      sent = result.sentMatches.filter(function(item){
-        return (item.matchType == req.query.matchType);
-      });
-      console.log(sent.reverse());
-      res.json({status: 200, messages:'ok', waitingMatches: waiting.reverse(), sentMatches: sent.reverse()});
+      res.json({status: 200, messages:'ok', waitingMatches: waiting, sentMatches: sent});
     }
   });
 });
@@ -517,9 +520,15 @@ app.get("/api/searchUser", function(req, res){
   User.findOne({userName : req.query.userName}, function(err, data){
     if(err)
       console.log(err);
-    if(data)
-      res.json({status: 200, messages: 'bulundu', userName: data.userName, userId: data.googleUserId, avatarId : data.avatarId, bulundu: "1"});
-    if(!data)
+    if(data){
+      if(data.userName == req.query.userName){
+        res.json({status:200, messages:'Baba kendini arama', bulundu: 2});
+      }
+      if(data.userName != req.query.userName){
+        res.json({status: 200, messages: 'bulundu', userName: data.userName, userId: data.googleUserId, avatarId : data.avatarId, bulundu: "1"});
+      }
+    }
+      if(!data)
       res.json({status:200, messages:'bulunamadi', bulundu: 2});
   });
 });
@@ -642,12 +651,22 @@ app.get("/api/deleteWaitingMatch", function(req, res){
     if(data){
       Match.findById(req.query.matchId, function(err, match){
         if(match){
+          match.accepted = false;
+          match.save();
           User.findOne({'googleUserId' : match.userId1}, function(err, data){
             data.coin += 1000;
             data.save();
-            console.log("silindi");
-            //matchId sinden useId1 bul sonra useri ara puani ver
-            res.json({status: 200, messages: 'Delete waiting match'});
+            User.update({'googleUserId' : match.userId1}, {$pull: {'sentMatches': {matchId: req.query.matchId}}}, function(err, data) {
+              if(err){
+                console.log(err);
+              }
+              if(data){
+
+                console.log("silindi");
+                //matchId sinden useId1 bul sonra useri ara puani ver
+                res.json({status: 200, messages: 'Delete waiting match -- Delete sent match'});
+              }
+            });
           });
         }
       });
@@ -755,7 +774,7 @@ app.get("/api/update/match/score", function(req,res){
                       console.log(err)
                     }else{
                       //Meydan okunana  Finished ekle
-                      result.coin += 0;
+                      result.coin += 1000;
                       result.numberOfWins += 0;
                           result.finished.push({
                             avatarId : data.avatarId1,
@@ -776,6 +795,7 @@ app.get("/api/update/match/score", function(req,res){
                       console.log(err);
                     }
                     if(result){
+                      result.coin += 1000;
                       result.numberOfDefeats += 0;
                       result.finished.push({
                         avatarId : data.avatarId2,
@@ -898,35 +918,33 @@ app.get("/api/update/match/score", function(req,res){
 });
 
 //UPDATE MATCH STATUS
-app.get("/api/update/match/status", function(req, res){
+app.get("/api/acceptWaitingMatch", function(req, res){
   //meydan okuyan kisinin kullanici adini ve matchId al
-  Match.findOneAndUpdate({matchId : req.query.matchId, userName1 : req.query.userName},
-    {matchStatu : req.query.matchStatu}, {}, function(err, data){
+  Match.findOne({_id : req.query.matchId}, function(err, data){
     if(err){
       console.log(err);
       res.json({status:500, messages:'Error'});
     }
     if(data){
       console.log(data);
-      //meydan okunan kisi kabul etmezse kayip bedeli iade et
-      if(data.matchStatu === false){
-        User.findOne({userName : data.userName1}, function(err, user){
-            if(err){
-              console.log(err);
-            }
-            if(user){
-              user.coin += 500; //500 coin kayip bedeli
+      data.accepted = true;
+      data.save();
+        User.findOne({googleUserId : data.userId2}, function(err, user){
+          if(err){
+            console.log(err);
+          }
+          if(user){
+            if(user.coin >= 1000){
+              user.coin -= 1000;
               user.save();
-              console.log(user);
-              //DELETE MATCH
-              res.json({status: 200, messages:'ok'});
+              res.json({status:200, messages:'Mac onaylandi, para kesildi'});
             }
+            else {
+              res.json({status:500, messages:'Yetersiz coin'});
+            }
+          }
         });
-      }else{
-        console.log("mac sonucu beklenecek");
-        res.json({messages:'ok'});
       }
-    }
   });
 });
 
