@@ -521,12 +521,7 @@ app.get("/api/searchUser", function(req, res){
     if(err)
       console.log(err);
     if(data){
-      if(data.userName == req.query.userName){
-        res.json({status:200, messages:'Baba kendini arama', bulundu: 2});
-      }
-      if(data.userName != req.query.userName){
-        res.json({status: 200, messages: 'bulundu', userName: data.userName, userId: data.googleUserId, avatarId : data.avatarId, bulundu: "1"});
-      }
+      res.json({status: 200, messages: 'bulundu', userName: data.userName, userId: data.googleUserId, avatarId : data.avatarId, bulundu: "1"});
     }
       if(!data)
       res.json({status:200, messages:'bulunamadi', bulundu: 2});
