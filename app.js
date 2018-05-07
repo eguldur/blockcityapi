@@ -36,7 +36,7 @@ function intervalFunc(){
     //console.log(moment.parseZone(match.updatedAt).format("YYYYMMDD HH:mm") , match.updatedAt, moment().zone(3).format("YYYYMMDD HH:mm"), moment().add(1,'days').format("YYYYMMDDHHmm"));
     if(match.matchStatus == false){
       var dateNow = moment().format("YYYYMMDDHHmm");
-      var oneDayAfter = moment.parseZone(match.updatedAt).add(1,'minutes').format("YYYYMMDDHHmm");
+      var oneDayAfter = moment.parseZone(match.updatedAt).add(1,'minute').format("YYYYMMDDHHmm");
   
       if(oneDayAfter <= dateNow){
         var matchId = match._id;
@@ -97,7 +97,7 @@ app.get('/authenticate', (req, res) =>{
     googleUserId: req.query.userId
   };
   const token = jwt.sign(payload, req.app.get('api_secret_key'),{
-    expiresIn : 720 //12 saat
+    expiresIn : 86400  //24 saat
   });
   res.json({
     status: 200,
