@@ -10,8 +10,7 @@ var matchSchema = new mongoose.Schema({
     score2 : Number,
     avatarId1 : {type : Number, default:0},
     avatarId2 : {type : Number, default:0},
-    matchStatus : {type: Boolean, default: false},
-    accepted : {type: Boolean}
+    matchStatus : {type: Boolean, default: false}
 }, {timestamps : true});
 
 module.exports = mongoose.model("Match", matchSchema);
