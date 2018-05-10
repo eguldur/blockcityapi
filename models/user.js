@@ -17,7 +17,8 @@ var userSchema = new mongoose.Schema({
     accepted : {type : Boolean, default : false},
     avatarId : Number,
     userId : String, 
-    userName : String}],    
+    userName : String,
+    addTime : { type : Date, default: Date.now }}],    
 
   waiting: [{
     avatarId : Number,

@@ -221,7 +221,7 @@ app.get("/api/login", function(req, res){
     }
     if(user){
       console.log("User Mevcut");
-      res.json({status: 200, messages:'User Exist', exists : user.userName});
+      res.json({status: 200, messages:'User Exist', exists : user.userName, coin: user.coin, avatarId : user.avatarId});
     }else{
       console.log("User Mevcut Degil");
       res.json({status: 200, messages: 'User Not Exist'});
@@ -238,7 +238,7 @@ app.get("/api/register", function(req, res){
     var changeUserName = false;
     var numberOfWins = "0";
     var numberOfDefeats = "0";
-    var coin =  "100";
+    var coin =  "10000";
     var timeModeHighScore = "0";
     var classicModeHighScore = "0";
 
@@ -267,7 +267,7 @@ app.get("/api/register", function(req, res){
               console.log(err);
           }else {
               console.log("Kullanici eklendi");
-              res.json({status: 200, messages: 'ok', user: newUser})
+              res.json({status: 200, messages: 'ok', coin : coin})
           }
       });
     }
