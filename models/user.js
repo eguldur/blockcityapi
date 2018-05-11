@@ -9,6 +9,8 @@ var userSchema = new mongoose.Schema({
   changeUserName : Boolean,
   coin : Number,
   avatarId : {type: Number, default : 0},
+  arenaId : {type: Number, default : 0},
+  blockId : {type: Number, default : 0},
   numberOfWins : Number,
   numberOfDefeats : Number,
   //score array

@@ -212,6 +212,26 @@ app.get("/api/update/avatarId", function(req, res){
   })
 });
 
+//UPDATE ARENA AND BLOCK ID
+app.get("/api/update/arenaAndBlockId", function(req, res){
+  var data = {
+    arenaId : req.query.arenaId,
+    blockId : req.query.blockId
+  }
+  var query = {
+    'googleUserId' : req.query.userId
+    //'googleEmail' : req.query.googleEmail,
+    //'googleUserId' : req.query.googleUserId
+  }
+
+  User.findOneAndUpdate(query, data, {}, function(err, data){
+    if(err){
+      console.log(err)
+    }else{
+      res.json({status: 200, messages: 'Change Arena And Block ID'})
+    }
+  })
+});
 
 
 app.get("/api/login", function(req, res){
@@ -221,7 +241,7 @@ app.get("/api/login", function(req, res){
     }
     if(user){
       console.log("User Mevcut");
-      res.json({status: 200, messages:'User Exist', exists : user.userName, coin: user.coin, avatarId : user.avatarId});
+      res.json({status: 200, messages:'User Exist', exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId});
     }else{
       console.log("User Mevcut Degil");
       res.json({status: 200, messages: 'User Not Exist'});
@@ -316,7 +336,7 @@ app.get("/api/getFriends", function(req, res){
       }, function(){
         console.log(friendsArray);
         console.log('finished');
-        res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
+        res.json({status: 200, messages:'Get Friends', friends: friendsArray});
       }
 
   );
@@ -447,6 +467,7 @@ app.get("/api/addFriend", function(req, res){
   User.findOne({'googleUserId' : req.query.userId, 'friends': {$elemMatch:{userId : req.query.friendUserId}}}, function(err, friend){
     if(err){
       console.log(err);
+      res.json({status: 200, messages: 'Yuru git lan'});
     }
     if(friend){
       console.log("Friend found");
@@ -462,12 +483,20 @@ app.get("/api/addFriend", function(req, res){
           console.log("Istek mevcut");
           res.json({status:200, messages: 'Istek mevcut'});
         }else{
-          console.log("Istek mevcut degil");
-          User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
-            data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
-            data.save();
-            res.json({status : 200, messages: 'Add friend request'});
-          });
+          if(req.query.friendUserId != null){
+            console.log("Istek mevcut degil");
+            User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
+              if(data){
+                data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
+                data.save();
+                res.json({status : 200, messages: 'Add friend request'});
+              }else{
+                res.json({status:200, messages: 'Baba yavas'});
+              }
+            });
+          }else{
+            res.json({status:200, messages: 'Baba yavas'});
+          }
         }
       });
     }
@@ -1100,7 +1129,7 @@ app.get("/api/getUserData", function(req, res){
       console.log(err);
     }
     if(user){
-      res.json({status: 200, messages : 'ok', user: user})
+      res.json({status: 200, messages : 'ok', coin: user.coin})
     }
   });
 });
