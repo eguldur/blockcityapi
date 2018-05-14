@@ -36,7 +36,7 @@ function intervalFunc(){
     //console.log(moment.parseZone(match.updatedAt).format("YYYYMMDD HH:mm") , match.updatedAt, moment().zone(3).format("YYYYMMDD HH:mm"), moment().add(1,'days').format("YYYYMMDDHHmm"));
     if(match.matchStatus == false){
       var dateNow = moment().format("YYYYMMDDHHmm");
-      var oneDayAfter = moment.parseZone(match.updatedAt).add(1,'minute').format("YYYYMMDDHHmm");
+      var oneDayAfter = moment.parseZone(match.updatedAt).add(1,'day').format("YYYYMMDDHHmm");
   
       if(oneDayAfter <= dateNow){
         var matchId = match._id;
@@ -87,12 +87,13 @@ function intervalFunc(){
   });
  });
 }
-//setInterval(intervalFunc, 1000);
+//setInterval(intervalFunc, 2000);
 
-
+console.log(moment(new Date()).add(-7,'years'));
 
 
 app.get('/authenticate', (req, res) =>{
+  /*
   const payload = {
     googleUserId: req.query.userId
   };
@@ -103,7 +104,7 @@ app.get('/authenticate', (req, res) =>{
     status: 200,
     token
   });
-  /*
+  */
   User.findOne({'googleUserId' : req.query.userId}, function(err, user){
     if(err){
       console.log(err);
@@ -118,15 +119,15 @@ app.get('/authenticate', (req, res) =>{
         googleUserId: req.query.userId
       };
       const token = jwt.sign(payload, req.app.get('api_secret_key'),{
-        expiresIn : 720 //12 saat
+        expiresIn : 86400 //12 saat
       });
       res.json({
         status: 200,
-        token
+        token,
+        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId
       });
     }
   });
-  */
 });
 
 
@@ -250,7 +251,7 @@ app.get("/api/login", function(req, res){
 });
 
 //REGISTER USER
-app.get("/api/register", function(req, res){
+app.get("/register", function(req, res){
     var googleUserId =  req.query.googleUserId;
     var googleUserName = req.query.googleUserName;
     var googleEmail = req.query.googleEmail;
@@ -261,37 +262,64 @@ app.get("/api/register", function(req, res){
     var coin =  "10000";
     var timeModeHighScore = "0";
     var classicModeHighScore = "0";
-
-  User.findOne({'googleUserId' : req.query.googleUserId}, function(err, exists){
-    if (err) {
-      console.log(err);
+    if(googleUserId != null && googleUserName != null && userName != null){
+      User.findOne({'googleUserId' : req.query.googleUserId}, function(err, exists){
+        if (err) {
+          console.log(err);
+        }
+        if(exists) {
+          console.log("Hesap zaten kayitli");
+          console.log(exists);
+          res.json({status: 200, messages: 'Hesap zaten kayitli'});
+        }else{
+          User.create({
+            googleUserId: googleUserId,
+            googleUserName: googleUserName,
+            googleEmail : googleEmail,
+            userName : userName,
+            changeUserName : changeUserName,
+            numberOfWins : numberOfWins,
+            numberOfDefeats : numberOfDefeats,
+            coin : coin,
+            timeModeHighScore : timeModeHighScore,
+            classicModeHighScore : classicModeHighScore
+            },function(err, newUser){
+              if (err) {
+                  console.log(err);
+              }else {
+                  console.log("Kullanici eklendi");
+                  User.findOne({'googleUserId' : googleUserId}, function(err, user){
+                    if(err){
+                      console.log(err);
+                    }
+                    if(!user){
+                      res.json({
+                        status: false,
+                        messages: 'Authentication failed, user not found.'
+                      })
+                    }else{
+                      const payload = {
+                        googleUserId: req.query.userId
+                      };
+                      const token = jwt.sign(payload, req.app.get('api_secret_key'),{
+                        expiresIn : 86400 //12 saat
+                      });
+                      res.json({
+                        status: 200,
+                        token,
+                        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId
+                      });
+                    }
+                  });
+                  //res.json({status: 200, messages: 'ok', coin : coin})
+              }
+          });
+        }
+        });
     }
-    if(exists) {
-      console.log("Hesap zaten kayitli");
-      console.log(exists);
-      res.json({status: 200, messages: 'ok', user: exists})
-    }else{
-      User.create({
-        googleUserId: googleUserId,
-        googleUserName: googleUserName,
-        googleEmail : googleEmail,
-        userName : userName,
-        changeUserName : changeUserName,
-        numberOfWins : numberOfWins,
-        numberOfDefeats : numberOfDefeats,
-        coin : coin,
-        timeModeHighScore : timeModeHighScore,
-        classicModeHighScore : classicModeHighScore
-        },function(err, newUser){
-          if (err) {
-              console.log(err);
-          }else {
-              console.log("Kullanici eklendi");
-              res.json({status: 200, messages: 'ok', coin : coin})
-          }
-      });
+    else{
+      res.json({status: 500, messages:'ayik ol'});
     }
-    });
 });
 
 //GET FRIENDS
@@ -539,7 +567,7 @@ app.get("/api/friendRequestStatus", function(req, res){
 });
 
 //GLOBAL SEARCH USER
-app.get("/api/searchUser", function(req, res){
+app.get("/searchUser", function(req, res){
   User.findOne({userName : req.query.userName}, function(err, data){
     if(err)
       console.log(err);
