@@ -404,13 +404,15 @@ app.get("/api/getWaitingMatches", function(req, res){
       waiting = result.waiting.filter(function(item){
         return (item.matchType == req.query.matchType);
       });
-      console.log(waiting.reverse());
+      console.log(waiting);
+      waiting.reverse();
 
       sent = result.sentMatches.filter(function(item){
         return (item.matchType == req.query.matchType);
       });
-      console.log(sent.reverse());
-      res.json({status: 200, messages:'ok', waitingMatches: waiting.reverse(), sentMatches: sent.reverse()});
+      sent.reverse();
+      console.log(sent);
+      res.json({status: 200, messages:'ok', waitingMatches: waiting, sentMatches: sent});
     }
   });
 });
