@@ -124,13 +124,11 @@ app.get('/authenticate', (req, res) =>{
       res.json({
         status: 200,
         token,
-        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId
+        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId, changeUserName : user.changeUserName
       });
     }
   });
 });
-
-
 
 //Home page
 app.get("/", function(req, res) {
@@ -167,14 +165,21 @@ app.get("/api/update/username", function(req, res) {
     'googleUserId':req.query.userId,
     'changeUserName':false
   }
-  //User name control yapilacak
-    User.findOneAndUpdate(query, data, {}, function (err, data) {
-      if(err){
-        console.log(err);
-      }else {
-        res.json({status: 200, messages: 'ok', user: data})
-      }
-    });
+  User.findOne({userName : req.query.userName}, function(err, user){
+    if(err)
+      console.log(err);
+    if(user)
+      res.json({status: 200, messages: 'bulundu', bulundu: "1"});
+    if(!user){
+      User.findOneAndUpdate(query, data, {}, function (err, data) {
+        if(err){
+          console.log(err);
+        }else {
+          res.json({status: 200, messages: 'Username degisti'});
+        }
+      });
+    }
+  });
 });
 
 //UPDATE COIN
@@ -234,7 +239,7 @@ app.get("/api/update/arenaAndBlockId", function(req, res){
   })
 });
 
-
+//LOGIN
 app.get("/api/login", function(req, res){
   User.findOne({'googleUserId' : req.query.userId}, function(err, user){
     if(err){
@@ -859,6 +864,7 @@ app.get("/api/update/match/score", function(req,res){
                           result.finished.push({
                             avatarId : data.avatarId1,
                             userName : data.userName1,
+                            userId: data.userId1,
                             matchId : data.matchId,
                             myScore : data.score2,
                             enemyScore : data.score1,
@@ -878,6 +884,7 @@ app.get("/api/update/match/score", function(req,res){
                       result.finished.push({
                         avatarId : data.avatarId2,
                         userName : data.userName2,
+                        userId: data.userId2,
                         matchId : data.matchId,
                         myScore : data.score1,
                         enemyScore : data.score2,
@@ -1160,6 +1167,27 @@ app.get("/api/getUserData", function(req, res){
     }
     if(user){
       res.json({status: 200, messages : 'ok', coin: user.coin})
+    }
+  });
+});
+
+//GET TIME MODE LEADER BOARD
+app.get("/api/getLeaderboard", function(req, res){
+  Score.find({}).sort({timeMode: 'desc'}).limit(10).exec(function(error, time){
+    if(error){
+      console.log(error);
+    }else{
+      console.log("***********TIME MODE LEADERBOARD***********");
+      console.log(time);
+      Score.find({}).sort({classicMode: 'desc'}).limit(10).exec(function(error, classic){
+        if(error){
+          console.log(error);
+        }else{
+          console.log("***********CLASSIC MODE LEADERBOARD***********");
+          console.log(classic);
+          res.json({status: 200, messages: 'ok', time : time, classic : classic});
+        }
+      });
     }
   });
 });
