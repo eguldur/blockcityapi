@@ -701,13 +701,52 @@ app.get("/api/deleteWaitingMatch", function(req, res){
     if(data){
       Match.findById(req.query.matchId, function(err, match){
         if(match){
+          match.matchStatus = true;
+          match.save();
           User.findOne({'googleUserId' : match.userId1}, function(err, data){
             data.coin += 1000;
             data.save();
             console.log("silindi");
             //matchId sinden useId1 bul sonra useri ara puani ver
-            res.json({status: 200, messages: 'Delete waiting match'});
+              //gonderilen maci sil
+              User.update({'googleUserId' : match.userId1}, {$pull: {'sentMatches': {matchId : match._id}}}, function(err, data){
+                if(err){
+                  console.log(err);
+                }
+                if(data){
+                  console.log("sent matches silindi");
+                  res.json({status: 200, messages: 'Delete waiting match -- Delete sent match'});
+                }
+              });
           });
+        }
+      });
+    }
+  });
+});
+
+//ACCEPT WAITING MATCH
+app.get("/api/acceptWaitingMatch", function(req, res){
+  User.update({'googleUserId': req.query.userId}, {$pull: {'waiting':{matchId : req.query.matchId}}}, function(err, data){
+    if(err){
+      console.log(err);
+    }
+    if(data){
+      User.findOne({'googleUserId' : req.query.userId}, function(err, user){
+        if(err)
+        console.log(err);
+        if(user){
+          if(user.coin < 1000){
+            res.json({status:500, messages: 'Yetersiz coin'});
+          }else{
+            user.coin -= 1000;
+            user.save(function(err){
+              if(err){
+                console.log(err);
+              }
+              res.json({status: 200, messages: 'Delete waiting match'});
+            });
+          }
         }
       });
     }
