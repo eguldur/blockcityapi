@@ -13,6 +13,8 @@ var userSchema = new mongoose.Schema({
   blockId : {type: Number, default : 0},
   numberOfWins : Number,
   numberOfDefeats : Number,
+  timeMode :{type:Number, default:0},
+  classicMode :{type:Number, default:0},
   //score array
   //match array
   friends: [{

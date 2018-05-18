@@ -1030,16 +1030,7 @@ app.get("/api/addUserToQueue", function(req, res){
 
 //TIME MODE HIGH SCORE UPDATE
 app.get("/api/update/score/timeMode", function(req, res){
-  var data = {
-    googleUserId : req.query.userId,
-    userName : req.query.userName,
-    timeMode : req.query.timeHighScore
-  }
-  var query = {
-    googleUserId : req.query.userId
-  }
-
-  Score.findOne({googleUserId : req.query.userId}, function(err,exists){
+  User.findOne({googleUserId : req.query.userId}, function(err,exists){
     if(err){
       console.log(err);
     }
@@ -1048,25 +1039,12 @@ app.get("/api/update/score/timeMode", function(req, res){
       var dbScore = exists.timeMode;
       if(parseInt(dbScore) < parseInt(req.query.timeHighScore)){
         exists.timeMode = req.query.timeHighScore;
-        exists.userId = req.query.userId;
-        exists.userName = req.query.userName;
         exists.save();
-        res.json({status: 200, messages:'ok'});
+        res.json({status: 200, messages:'Score guncellendi'});
        }else{
          console.log("LocalScore < dbScore Failed to update.!");
-         res.json({status: 500, error: "LocalScore < dbScore Failed to update.!"});
+         res.json({status: 200, error: "LocalScore < dbScore Failed to update.!"});
        }
-    }
-    else{
-      //User'a ait skor yoksa yarat
-      Score.create(data, function(err, score){
-        if(err){
-          console.log(err);
-        }
-        if(score){
-          res.json({status: 200, messages:'ok', score:score});
-        }
-      });
     }
   });
 });
@@ -1074,16 +1052,7 @@ app.get("/api/update/score/timeMode", function(req, res){
 
 //CLASSIC MODE HIGH SCORE UPDATE
 app.get("/api/update/score/classicMode", function(req, res){
-  var data = {
-    googleUserId : req.query.userId,
-    userName : req.query.userName,
-    classicMode : req.query.classicHighScore
-  }
-  var query = {
-    googleUserId : req.query.userId,
-  }
-
-  Score.findOne({googleUserId : req.query.userId}, function(err,exists){
+  User.findOne({googleUserId : req.query.userId}, function(err,exists){
     if(err){
       console.log(err);
     }
@@ -1092,26 +1061,13 @@ app.get("/api/update/score/classicMode", function(req, res){
       var dbScore = exists.classicMode;
       if(parseInt(dbScore) < parseInt(req.query.classicHighScore)){
         exists.classicMode = req.query.classicHighScore;
-        exists.userId = req.query.userId;
-        exists.userName = req.query.userName;
         exists.save();
         res.json({status: 200, messages: 'Score guncellendi'});
       }
       else{
         console.log("LocalScore < dbScore Failed to update.!");
         res.json({status: 200, messages: "LocalScore < dbScore Failed to update.!"});
-      }    
-    }
-    else{
-      //User'a ait skor yoksa yarat
-      Score.create(data, function(err, score){
-        if(err){
-          console.log(err);
-        }
-        if(score){
-          res.json({status: 200, messages:'Score olusturuldu'});
-        }
-      });
+      }
     }
   });
 });
@@ -1173,13 +1129,13 @@ app.get("/api/getUserData", function(req, res){
 
 //GET TIME MODE LEADER BOARD
 app.get("/api/getLeaderboard", function(req, res){
-  Score.find({}).sort({timeMode: 'desc'}).limit(10).exec(function(error, time){
+  User.find({}).sort({timeMode: 'desc'}).limit(10).select({"userName": 1, "timeMode":1}).exec(function(error, time){
     if(error){
       console.log(error);
     }else{
       console.log("***********TIME MODE LEADERBOARD***********");
       console.log(time);
-      Score.find({}).sort({classicMode: 'desc'}).limit(10).exec(function(error, classic){
+      User.find({}).sort({classicMode: 'desc'}).limit(10).select({"userName": 1, "classicMode":1}).exec(function(error, classic){
         if(error){
           console.log(error);
         }else{
@@ -1191,7 +1147,6 @@ app.get("/api/getLeaderboard", function(req, res){
     }
   });
 });
-
 //GET TIME MODE LEADER BOARD
 app.get("/api/getTimeModeLeaderboard", function(req, res){
   Score.find({}).sort({timeMode: 'desc'}).limit(10).exec(function(error, leaderboard){
