@@ -258,8 +258,8 @@ app.get("/api/login", function(req, res){
 //REGISTER USER
 app.get("/register", function(req, res){
     var googleUserId =  req.query.googleUserId;
-    //var googleUserName = req.query.googleUserName;
-    //var googleEmail = req.query.googleEmail;
+    var googleUserName = req.query.googleUserName;
+    var googleEmail = req.query.googleEmail;
     var userName = req.query.userName;
     var changeUserName = false;
     var numberOfWins = "0";
@@ -279,8 +279,8 @@ app.get("/register", function(req, res){
         }else{
           User.create({
             googleUserId: googleUserId,
-            //googleUserName: googleUserName,
-            //googleEmail : googleEmail,
+            googleUserName: googleUserName,
+            googleEmail : googleEmail,
             userName : userName,
             changeUserName : changeUserName,
             numberOfWins : numberOfWins,
