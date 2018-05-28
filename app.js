@@ -267,7 +267,7 @@ app.get("/register", function(req, res){
     var coin =  "10000";
     var timeModeHighScore = "0";
     var classicModeHighScore = "0";
-    if(googleUserId != null && googleUserName != null && userName != null){
+    if(googleUserId != null && userName != null){
       User.findOne({'googleUserId' : req.query.googleUserId}, function(err, exists){
         if (err) {
           console.log(err);
