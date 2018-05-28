@@ -87,7 +87,7 @@ function intervalFunc(){
   });
  });
 }
-//setInterval(intervalFunc, 2000);
+setInterval(intervalFunc, 2000);
 
 console.log(moment(new Date()).add(-7,'years'));
 
