@@ -846,49 +846,95 @@ app.get("/api/update/match/score", function(req,res){
                   });
                 }
 
-                //beraberlik
                 if(data.score1 == data.score2){
-                  User.findOne({googleUserId : data.userId2}, function(err, result){
-                    if(err){
-                      console.log(err)
-                    }else{
-                      //Meydan okunana  Finished ekle
-                      result.coin += 0;
-                      result.numberOfWins += 0;
-                          result.finished.push({
-                            avatarId : data.avatarId1,
-                            userId : data.userId1,
-                            userName : data.userName1,
-                            matchId : data.matchId,
-                            myScore : data.score2,
-                            enemyScore : data.score1,
-                            matchStatus : "draw",
-                            matchType : data.matchType
-                          });
-                          result.save();
-                    }
-                  });
-                  //Meydan okuyan Finished ekle
-                  User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
-                    if(err){
-                      console.log(err);
-                    }
-                    if(result){
-                      result.numberOfDefeats += 0;
-                      result.finished.push({
-                        avatarId : data.avatarId2,
-                        userId: data.userId2,
-                        userName : data.userName2,
-                        matchId : data.matchId,
-                        myScore : data.score1,
-                        enemyScore : data.score2,
-                        matchStatus : "draw",
-                        matchType : data.matchType
-                      });
-                      result.save();
-                    }
-                  });
+                  //terk
+                  if(data.score1 == -2 && data.score2 == -2){
+                    User.findOne({googleUserId : data.userId2}, function(err, result){
+                      if(err){
+                        console.log(err)
+                      }else{
+                        //Meydan okunana  Finished ekle
+                        result.coin += 0;
+                        result.numberOfWins += 0;
+                            result.finished.push({
+                              avatarId : data.avatarId1,
+                              userId : data.userId1,
+                              userName : data.userName1,
+                              matchId : data.matchId,
+                              myScore : data.score2,
+                              enemyScore : data.score1,
+                              matchStatus : "draw",
+                              matchType : data.matchType
+                            });
+                            result.save();
+                      }
+                    });
+                    //Meydan okuyan Finished ekle
+                    User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
+                      if(err){
+                        console.log(err);
+                      }
+                      if(result){
+                        result.numberOfDefeats += 0;
+                        result.finished.push({
+                          avatarId : data.avatarId2,
+                          userId: data.userId2,
+                          userName : data.userName2,
+                          matchId : data.matchId,
+                          myScore : data.score1,
+                          enemyScore : data.score2,
+                          matchStatus : "draw",
+                          matchType : data.matchType
+                        });
+                        result.save();
+                      }
+                    });
+                  }
+                  //beraberlik
+                  else{
+                    User.findOne({googleUserId : data.userId2}, function(err, result){
+                      if(err){
+                        console.log(err)
+                      }else{
+                        //Meydan okunana  Finished ekle
+                        result.coin += 1000;
+                        result.numberOfWins += 0;
+                            result.finished.push({
+                              avatarId : data.avatarId1,
+                              userId : data.userId1,
+                              userName : data.userName1,
+                              matchId : data.matchId,
+                              myScore : data.score2,
+                              enemyScore : data.score1,
+                              matchStatus : "draw",
+                              matchType : data.matchType
+                            });
+                            result.save();
+                      }
+                    });
+                    //Meydan okuyan Finished ekle
+                    User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
+                      if(err){
+                        console.log(err);
+                      }
+                      if(result){
+                        result.numberOfDefeats += 1000;
+                        result.finished.push({
+                          avatarId : data.avatarId2,
+                          userId: data.userId2,
+                          userName : data.userName2,
+                          matchId : data.matchId,
+                          myScore : data.score1,
+                          enemyScore : data.score2,
+                          matchStatus : "draw",
+                          matchType : data.matchType
+                        });
+                        result.save();
+                      }
+                    });
+                  }
                 }
+                
 
                 //meydan okunan kazanirsa
                 if(data.score1 < data.score2){
@@ -1015,7 +1061,7 @@ app.get("/api/update/match/status", function(req, res){
               console.log(err);
             }
             if(user){
-              user.coin += 500; //500 coin kayip bedeli
+              user.coin += 1000; //1000 coin kayip bedeli
               user.save();
               console.log(user);
               //DELETE MATCH
