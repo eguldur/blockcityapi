@@ -29,6 +29,9 @@ app.use(bodyParser.urlencoded({extended:true}));
 
 app.use('/api', verifyToken);
 
+//VERSION
+var version = "1.1";
+
 function intervalFunc(){
  Match.find({}, function(err, matches){
   matches.forEach(function(match){
@@ -124,7 +127,7 @@ app.get('/authenticate', (req, res) =>{
       res.json({
         status: 200,
         token,
-        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId, changeUserName : user.changeUserName
+        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId, changeUserName : user.changeUserName, version : version
       });
     }
   });
