@@ -704,24 +704,28 @@ app.get("/api/deleteWaitingMatch", function(req, res){
     if(data){
       Match.findById(req.query.matchId, function(err, match){
         if(match){
-          match.matchStatus = true;
-          match.save();
-          User.findOne({'googleUserId' : match.userId1}, function(err, data){
-            data.coin += 1000;
-            data.save();
-            console.log("silindi");
-            //matchId sinden useId1 bul sonra useri ara puani ver
-              //gonderilen maci sil
-              User.update({'googleUserId' : match.userId1}, {$pull: {'sentMatches': {matchId : match._id}}}, function(err, data){
-                if(err){
-                  console.log(err);
-                }
-                if(data){
-                  console.log("sent matches silindi");
-                  res.json({status: 200, messages: 'Delete waiting match -- Delete sent match'});
-                }
-              });
-          });
+          if(!match.matchStatus){
+            match.matchStatus = true;
+            match.save();
+            User.findOne({'googleUserId' : match.userId1}, function(err, data){
+              data.coin += 1000;
+              data.save();
+              console.log("silindi");
+              //matchId sinden useId1 bul sonra useri ara puani ver
+                //gonderilen maci sil
+                User.update({'googleUserId' : match.userId1}, {$pull: {'sentMatches': {matchId : match._id}}}, function(err, data){
+                  if(err){
+                    console.log(err);
+                  }
+                  if(data){
+                    console.log("sent matches silindi");
+                    res.json({status: 200, messages: 'Delete waiting match -- Delete sent match'});
+                  }
+                });
+            });
+          }else{
+            res.json({status:200, messages:'Match onceden silindi zaten'});
+          }
         }
       });
     }
@@ -796,247 +800,250 @@ app.get("/api/update/match/score", function(req,res){
             if(data){
               var meydanOkuyan = data.userId1;
               var meydanOkunan = data.userId2;
-
-              if(data.score1 != -1 && data.score2 != -1){
-                //COINLERI GUNCELLE
-                console.log("Coinler guncellenecek");
-                
-                //meydan okuyan kazanirsa
-                if(data.score1 > data.score2){
-                  console.log(data.score1);
-                  console.log(data.score2);
-                  //Meydan okuyan kazanirsa
-                  User.findOne({googleUserId : data.userId1}, function(err, result){
-                    if(err){
-                      console.log(err)
-                    }else{
-                      //Meydan okuyana coin ver Finished ekle
-                      result.coin += 2000;
-                      result.numberOfWins +=1;
-                      result.finished.push({
-                        avatarId : data.avatarId2,
-                        userId : data.userId2,
-                        userName : data.userName2,
-                        matchId : data.matchId,
-                        myScore : data.score1,
-                        enemyScore : data.score2,
-                        matchStatus : "win",
-                        matchType : data.matchType
-                      });
-                      result.save();
-                      }
-                  });
-
-                  //Meydan Okunan Finished ekle
-                  User.findOne({googleUserId: data.userId2}).populate('finished').exec(function(err, result){
-                    if(err){
-                      console.log(err);
-                    }
-                    if(result){
-                      result.numberOfDefeats += 1; 
-                      result.finished.push({
-                        avatarId : data.avatarId1,
-                        userId : data.userId1,
-                        userName : data.userName1, 
-                        matchId : data.matchId, 
-                        myScore : data.score2, 
-                        enemyScore : data.score1,
-                        matchStatus : "lose",
-                        matchType : data.matchType
-                      });
-                      result.save();
-                    }
-                  });
-                }
-
-                if(data.score1 == data.score2){
-                  //terk
-                  if(data.score1 == -2 && data.score2 == -2){
-                    User.findOne({googleUserId : data.userId2}, function(err, result){
+              
+              if(!data.matchStatus){
+                if(data.score1 != -1 && data.score2 != -1){
+                  //COINLERI GUNCELLE
+                  console.log("Coinler guncellenecek");
+                  
+                  //meydan okuyan kazanirsa
+                  if(data.score1 > data.score2){
+                    console.log(data.score1);
+                    console.log(data.score2);
+                    //Meydan okuyan kazanirsa
+                    User.findOne({googleUserId : data.userId1}, function(err, result){
                       if(err){
                         console.log(err)
                       }else{
-                        //Meydan okunana  Finished ekle
-                        result.coin += 0;
-                        result.numberOfWins += 0;
-                            result.finished.push({
-                              avatarId : data.avatarId1,
-                              userId : data.userId1,
-                              userName : data.userName1,
-                              matchId : data.matchId,
-                              myScore : data.score2,
-                              enemyScore : data.score1,
-                              matchStatus : "draw",
-                              matchType : data.matchType
-                            });
-                            result.save();
-                      }
-                    });
-                    //Meydan okuyan Finished ekle
-                    User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
-                      if(err){
-                        console.log(err);
-                      }
-                      if(result){
-                        result.numberOfDefeats += 0;
+                        //Meydan okuyana coin ver Finished ekle
+                        result.coin += 2000;
+                        result.numberOfWins +=1;
                         result.finished.push({
                           avatarId : data.avatarId2,
-                          userId: data.userId2,
+                          userId : data.userId2,
                           userName : data.userName2,
                           matchId : data.matchId,
                           myScore : data.score1,
                           enemyScore : data.score2,
-                          matchStatus : "draw",
+                          matchStatus : "win",
+                          matchType : data.matchType
+                        });
+                        result.save();
+                        }
+                    });
+  
+                    //Meydan Okunan Finished ekle
+                    User.findOne({googleUserId: data.userId2}).populate('finished').exec(function(err, result){
+                      if(err){
+                        console.log(err);
+                      }
+                      if(result){
+                        result.numberOfDefeats += 1; 
+                        result.finished.push({
+                          avatarId : data.avatarId1,
+                          userId : data.userId1,
+                          userName : data.userName1, 
+                          matchId : data.matchId, 
+                          myScore : data.score2, 
+                          enemyScore : data.score1,
+                          matchStatus : "lose",
                           matchType : data.matchType
                         });
                         result.save();
                       }
                     });
                   }
-                  //beraberlik
-                  else{
-                    User.findOne({googleUserId : data.userId2}, function(err, result){
-                      if(err){
-                        console.log(err)
-                      }else{
-                        //Meydan okunana  Finished ekle
-                        result.coin += 1000;
-                        result.numberOfWins += 0;
-                            result.finished.push({
-                              avatarId : data.avatarId1,
-                              userId : data.userId1,
-                              userName : data.userName1,
-                              matchId : data.matchId,
-                              myScore : data.score2,
-                              enemyScore : data.score1,
-                              matchStatus : "draw",
-                              matchType : data.matchType
-                            });
-                            result.save();
-                      }
-                    });
-                    //Meydan okuyan Finished ekle
-                    User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
-                      if(err){
-                        console.log(err);
-                      }
-                      if(result){
-                        result.numberOfDefeats += 1000;
-                        result.finished.push({
-                          avatarId : data.avatarId2,
-                          userId: data.userId2,
-                          userName : data.userName2,
-                          matchId : data.matchId,
-                          myScore : data.score1,
-                          enemyScore : data.score2,
-                          matchStatus : "draw",
-                          matchType : data.matchType
-                        });
-                        result.save();
-                      }
-                    });
-                  }
-                }
-                
-
-                //meydan okunan kazanirsa
-                if(data.score1 < data.score2){
-                  //Meydan okunan kazanirsa
-                  User.findOne({userName : data.userName2}, function(err, result){
-                    if(err){
-                      console.log(err)
-                    }else{
-                      //Meydan okunana coin ver Finished ekle
-                      result.coin += 2000;
-                      result.numberOfWins += 1;
+  
+                  if(data.score1 == data.score2){
+                    //terk
+                    if(data.score1 == -2 && data.score2 == -2){
+                      User.findOne({googleUserId : data.userId2}, function(err, result){
+                        if(err){
+                          console.log(err)
+                        }else{
+                          //Meydan okunana  Finished ekle
+                          result.coin += 0;
+                          result.numberOfWins += 0;
+                              result.finished.push({
+                                avatarId : data.avatarId1,
+                                userId : data.userId1,
+                                userName : data.userName1,
+                                matchId : data.matchId,
+                                myScore : data.score2,
+                                enemyScore : data.score1,
+                                matchStatus : "draw",
+                                matchType : data.matchType
+                              });
+                              result.save();
+                        }
+                      });
+                      //Meydan okuyan Finished ekle
+                      User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
+                        if(err){
+                          console.log(err);
+                        }
+                        if(result){
+                          result.numberOfDefeats += 0;
                           result.finished.push({
-                            avatarId : data.avatarId1,
-                            userName : data.userName1,
-                            userId: data.userId1,
+                            avatarId : data.avatarId2,
+                            userId: data.userId2,
+                            userName : data.userName2,
                             matchId : data.matchId,
-                            myScore : data.score2,
-                            enemyScore : data.score1,
-                            matchStatus : "win",
+                            myScore : data.score1,
+                            enemyScore : data.score2,
+                            matchStatus : "draw",
                             matchType : data.matchType
                           });
                           result.save();
+                        }
+                      });
+                    }
+                    //beraberlik
+                    else{
+                      User.findOne({googleUserId : data.userId2}, function(err, result){
+                        if(err){
+                          console.log(err)
+                        }else{
+                          //Meydan okunana  Finished ekle
+                          result.coin += 1000;
+                          result.numberOfWins += 0;
+                              result.finished.push({
+                                avatarId : data.avatarId1,
+                                userId : data.userId1,
+                                userName : data.userName1,
+                                matchId : data.matchId,
+                                myScore : data.score2,
+                                enemyScore : data.score1,
+                                matchStatus : "draw",
+                                matchType : data.matchType
+                              });
+                              result.save();
+                        }
+                      });
+                      //Meydan okuyan Finished ekle
+                      User.findOne({googleUserId: data.userId1}).populate('finished').exec(function(err, result){
+                        if(err){
+                          console.log(err);
+                        }
+                        if(result){
+                          result.numberOfDefeats += 1000;
+                          result.finished.push({
+                            avatarId : data.avatarId2,
+                            userId: data.userId2,
+                            userName : data.userName2,
+                            matchId : data.matchId,
+                            myScore : data.score1,
+                            enemyScore : data.score2,
+                            matchStatus : "draw",
+                            matchType : data.matchType
+                          });
+                          result.save();
+                        }
+                      });
+                    }
+                  }
+                  
+  
+                  //meydan okunan kazanirsa
+                  if(data.score1 < data.score2){
+                    //Meydan okunan kazanirsa
+                    User.findOne({userName : data.userName2}, function(err, result){
+                      if(err){
+                        console.log(err)
+                      }else{
+                        //Meydan okunana coin ver Finished ekle
+                        result.coin += 2000;
+                        result.numberOfWins += 1;
+                            result.finished.push({
+                              avatarId : data.avatarId1,
+                              userName : data.userName1,
+                              userId: data.userId1,
+                              matchId : data.matchId,
+                              myScore : data.score2,
+                              enemyScore : data.score1,
+                              matchStatus : "win",
+                              matchType : data.matchType
+                            });
+                            result.save();
+                      }
+                    });
+                    //Meydan okuyan Finished ekle
+                    User.findOne({userName: data.userName1}).populate('finished').exec(function(err, result){
+                      if(err){
+                        console.log(err);
+                      }
+                      if(result){
+                        result.numberOfDefeats += 1;
+                        result.finished.push({
+                          avatarId : data.avatarId2,
+                          userName : data.userName2,
+                          userId: data.userId2,
+                          matchId : data.matchId,
+                          myScore : data.score1,
+                          enemyScore : data.score2,
+                          matchStatus : "lose",
+                          matchType : data.matchType
+                        });
+                        result.save();
+                      }
+                    });
+                  }
+  
+                  //Mac BITTI BEKLENEN MACI SIL
+                  User.update({'googleUserId' : data.userId2}, {$pull: {'waiting': {matchId : data._id}}}, function(err, data){
+                    if(err){
+                      console.log(err);
+                    }
+                    if(data){
+                      console.log("waiting silindi");
                     }
                   });
-                  //Meydan okuyan Finished ekle
-                  User.findOne({userName: data.userName1}).populate('finished').exec(function(err, result){
+  
+                  //gonderilen maci sil
+                  User.update({'googleUserId' : data.userId1}, {$pull: {'sentMatches': {matchId : data._id}}}, function(err, data){
+                    if(err){
+                      console.log(err);
+                    }
+                    if(data){
+                      console.log("sent matches silindi");
+                    }
+                  });
+  
+                  data.matchStatus = true;
+                  data.save();
+                }else{
+                  //meydan okuyan mac bitti rakibin waiting ekle
+                  User.findOne({googleUserId: data.userId2}).populate('waiting').exec(function(err, result){
                     if(err){
                       console.log(err);
                     }
                     if(result){
-                      result.numberOfDefeats += 1;
-                      result.finished.push({
+                      result.waiting.push({avatarId: data.avatarId1, googleUserId : data.userId1, userName : data.userName1, matchId : data._id, matchType : data.matchType});
+                      result.save();
+                    }
+                  });
+  
+                  User.findOne({googleUserId: data.userId1},function(err, result){
+                    if(err){
+                      console.log(err);
+                    }
+                    if(result){
+                      console.log("sent matches olusturuldu");
+                      result.sentMatches.push({
                         avatarId : data.avatarId2,
+                        googleUserId : data.userId2,
                         userName : data.userName2,
-                        userId: data.userId2,
-                        matchId : data.matchId,
                         myScore : data.score1,
-                        enemyScore : data.score2,
-                        matchStatus : "lose",
-                        matchType : data.matchType
+                        matchType : data.matchType,
+                        matchId : data._id
                       });
                       result.save();
                     }
                   });
                 }
-
-                //Mac BITTI BEKLENEN MACI SIL
-                User.update({'googleUserId' : data.userId2}, {$pull: {'waiting': {matchId : data._id}}}, function(err, data){
-                  if(err){
-                    console.log(err);
-                  }
-                  if(data){
-                    console.log("waiting silindi");
-                  }
-                });
-
-                //gonderilen maci sil
-                User.update({'googleUserId' : data.userId1}, {$pull: {'sentMatches': {matchId : data._id}}}, function(err, data){
-                  if(err){
-                    console.log(err);
-                  }
-                  if(data){
-                    console.log("sent matches silindi");
-                  }
-                });
-
-                data.matchStatus = true;
-                data.save();
               }else{
-                //meydan okuyan mac bitti rakibin waiting ekle
-                User.findOne({googleUserId: data.userId2}).populate('waiting').exec(function(err, result){
-                  if(err){
-                    console.log(err);
-                  }
-                  if(result){
-                    result.waiting.push({avatarId: data.avatarId1, googleUserId : data.userId1, userName : data.userName1, matchId : data._id, matchType : data.matchType});
-                    result.save();
-                  }
-                });
-
-                User.findOne({googleUserId: data.userId1},function(err, result){
-                  if(err){
-                    console.log(err);
-                  }
-                  if(result){
-                    console.log("sent matches olusturuldu");
-                    result.sentMatches.push({
-                      avatarId : data.avatarId2,
-                      googleUserId : data.userId2,
-                      userName : data.userName2,
-                      myScore : data.score1,
-                      matchType : data.matchType,
-                      matchId : data._id
-                    });
-                    result.save();
-                  }
-                });
+                res.json({status:200, messages:'Yavas bu maci silmistin'});
               }
-
             }
           });
           res.json({status: 200, messages: 'ok'})
