@@ -90,7 +90,8 @@ function intervalFunc(){
   });
  });
 }
-setInterval(intervalFunc, 2000);
+//setInterval(intervalFunc, 2000);
+
 
 console.log(moment(new Date()).add(-7,'years'));
 
@@ -162,13 +163,17 @@ app.get("/api/feedback", function(req, res){
 app.get("/api/update/username", function(req, res) {
   var data = {
     userName: req.query.userName,
-    changeUserName:true
+    changeUserName:true,
+    searchUserName:userName.toLowerCase()
   }
   var query = {
     'googleUserId':req.query.userId,
     'changeUserName':false
   }
-  User.findOne({userName : req.query.userName}, function(err, user){
+
+
+
+  User.findOne({searchUserName : req.query.userName.toLowerCase()}, function(err, user){
     if(err)
       console.log(err);
     if(user)
@@ -264,6 +269,7 @@ app.get("/register", function(req, res){
     var googleUserName = req.query.googleUserName;
     var googleEmail = req.query.googleEmail;
     var userName = req.query.userName;
+    var searchUserName = userName;
     var changeUserName = false;
     var numberOfWins = "0";
     var numberOfDefeats = "0";
@@ -285,6 +291,7 @@ app.get("/register", function(req, res){
             googleUserName: googleUserName,
             googleEmail : googleEmail,
             userName : userName,
+            searchUserName:searchUserName,
             changeUserName : changeUserName,
             numberOfWins : numberOfWins,
             numberOfDefeats : numberOfDefeats,
@@ -315,7 +322,7 @@ app.get("/register", function(req, res){
                       res.json({
                         status: 200,
                         token,
-                        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId
+                        exists : user.userName, coin: user.coin, avatarId : user.avatarId, arenaId: user.arenaId, blockId: user.blockId, version:version
                       });
                     }
                   });
@@ -576,7 +583,7 @@ app.get("/api/friendRequestStatus", function(req, res){
 
 //GLOBAL SEARCH USER
 app.get("/searchUser", function(req, res){
-  User.findOne({userName : req.query.userName}, function(err, data){
+  User.findOne({searchUserName : req.query.userName.toLowerCase()}, function(err, data){
     if(err)
       console.log(err);
     if(data)
@@ -588,7 +595,7 @@ app.get("/searchUser", function(req, res){
 
 //SEARCH FRIEND
 app.get("/api/searchFriend", function(req, res){
-  User.findOne({'userName' : req.query.userName, 'friends': {$elemMatch:{userName : req.query.friendUserName}}}, function(err, friend){
+  User.findOne({'searchUserName' : req.query.userName.toLowerCase(), 'friends': {$elemMatch:{userName : req.query.friendUserName}}}, function(err, friend){
     if(friend){
       console.log("Friend found");
       res.json({status:200, messages: 'ok', friend:friend});

@@ -6,6 +6,7 @@ var userSchema = new mongoose.Schema({
   googleUserName : {type: String, required: true, trim: true},
   googleEmail : String,
   userName : String,
+  searchUserName : {type: String, lowercase : true},
   changeUserName : Boolean,
   coin : Number,
   avatarId : {type: Number, default : 0},
