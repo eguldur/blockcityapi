@@ -25,6 +25,12 @@ var userSchema = new mongoose.Schema({
     userName : String,
     addTime : { type : Date, default: Date.now }}],    
 
+  sentFriendRequest: [{
+    avatarId : Number,
+    userId : String, 
+    userName : String,
+    addTime : { type : Date, default: Date.now }}],  
+
   waiting: [{
     avatarId : Number,
     googleUserId : String,

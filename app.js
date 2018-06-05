@@ -405,7 +405,7 @@ app.get("/api/getFriendsRequest", function(req, res){
 
     if(friendsCount == 0){
       console.log("Istek yok");
-      res.json({status:200, messages:'Hic istegi yok'});
+      res.json({status:200, messages:'Hic istegi yok',sentFriendRequest : data.sentFriendRequest});
     }
 
     if(friendsCount != 0){
@@ -428,8 +428,7 @@ app.get("/api/getFriendsRequest", function(req, res){
         }
       }, function(){
         console.log(friendsArray);
-        console.log('finished');
-        res.json({status: 200, messages:'Get Friends Request', friends: friendsArray});
+        res.json({status: 200, messages:'Get Friends Request', friends: friendsArray, sentFriendRequest : data.sentFriendRequest});
       }
 
   );
@@ -532,10 +531,20 @@ app.get("/api/addFriend", function(req, res){
             console.log("Istek mevcut degil");
             User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
               if(data){
-                //kendi gonderilen arkadaslik isteklerine ekle
-                data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
-                data.save();
-                res.json({status : 200, messages: 'Add friend request'});
+                User.findOne({'googleUserId' : req.query.userId}, function(err, arkadasEkleyen){
+                  if(err){
+                    console.log(err);
+                  }
+                  if(arkadasEkleyen){
+                    arkadasEkleyen.sentFriendRequest.push({avatarId: req.query.friendAvatarId, userName: req.query.friendUserName, userId: req.query.friendUserId})
+                    arkadasEkleyen.save();
+                    //kendi gonderilen arkadaslik isteklerine ekle
+                    data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
+                    data.save();
+    
+                    res.json({status : 200, messages: 'Add friend request'});
+                  }
+                });
               }else{
                 res.json({status:200, messages: 'Baba yavas'});
               }
@@ -564,7 +573,7 @@ app.get("/api/friendRequestStatus", function(req, res){
       if(data){
         data.friends.push({avatarId: req.query.avatarId, userName : req.query.userName, userId : req.query.userId, accepted : "true"});
         data.save();
-        res.json({status:200, messages:'Added Friend'});
+        //res.json({status:200, messages:'Added Friend'});
       }
     });
     });
@@ -576,10 +585,20 @@ app.get("/api/friendRequestStatus", function(req, res){
       }
       if(data){
         console.log("silindi");
-        res.json({status: 200, messages: 'Delete Friend'});
+        //res.json({status: 200, messages: 'Delete Friend'});
       }
     });
   }
+  User.update({'googleUserId' : req.query.userId}, {$pull: {'sentFriendRequest': {userId : req.query.userId}}}, function(err, data){
+    if(err){
+      console.log(err);
+    }
+    if(data){
+      console.log("silindi");
+      res.json({status: 200, messages: 'Delete Sent Friend Request'});
+    }
+  });
+
 });
 
 //GLOBAL SEARCH USER
