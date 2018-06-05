@@ -589,7 +589,7 @@ app.get("/api/friendRequestStatus", function(req, res){
       }
     });
   }
-  User.update({'googleUserId' : req.query.userId}, {$pull: {'sentFriendRequest': {userId : req.query.userId}}}, function(err, data){
+  User.update({'googleUserId' : req.query.userId}, {$pull: {'sentFriendRequest': {userId : req.query.friendUserId}}}, function(err, data){
     if(err){
       console.log(err);
     }
