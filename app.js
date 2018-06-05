@@ -90,7 +90,7 @@ function intervalFunc(){
   });
  });
 }
-setInterval(intervalFunc, 2000);
+//setInterval(intervalFunc, 2000);
 
 
 console.log(moment(new Date()).add(-7,'years'));
@@ -164,7 +164,7 @@ app.get("/api/update/username", function(req, res) {
   var data = {
     userName: req.query.userName,
     changeUserName:true,
-    searchUserName:userName.toLowerCase()
+    searchUserName:req.query.userName.toLowerCase()
   }
   var query = {
     'googleUserId':req.query.userId,
@@ -532,6 +532,7 @@ app.get("/api/addFriend", function(req, res){
             console.log("Istek mevcut degil");
             User.findOne({'googleUserId' : req.query.friendUserId}, function(err, data){
               if(data){
+                //kendi gonderilen arkadaslik isteklerine ekle
                 data.friends.push({avatarId : req.query.avatarId, userName : req.query.userName, userId : req.query.userId});
                 data.save();
                 res.json({status : 200, messages: 'Add friend request'});
