@@ -115,7 +115,7 @@ app.get('/authenticate', (req, res) =>{
     }
     if(!user){
       res.json({
-        status: false,
+        status: 200,
         messages: 'Authentication failed, user not found.'
       })
     }else{
