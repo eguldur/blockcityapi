@@ -30,7 +30,7 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use('/api', verifyToken);
 
 //VERSION
-var version = "1.3";
+var version = "1.4";
 
 function intervalFunc(){
  Match.find({}, function(err, matches){
