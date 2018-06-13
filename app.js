@@ -21,7 +21,7 @@ app.set('api_secret_key', config.api_secret_key);
 const verifyToken = require('./middleware/verify-token');
 
 //mongoose.connect("mongodb://localhost/blockcity", {useMongoClient: true});
-mongoose.connect('mongodb://m.aslann35:006f9c60@ds233748.mlab.com:33748/mydb')
+mongoose.connect('mongodb://coinzgr_blockusr:9BMeWJjp@51.15.185.162:27017/coinzgr_blockcity')
     .then(()=> { console.log(`Succesfully Connected to the Mongodb Database`)})
     .catch(()=> { console.log(`Error Connecting to the Mongodb Database`)});
 
